@@ -394,7 +394,14 @@ function renderChart(data) {
 
   if (!points.length) { chartInstance = null; return; }
 
-  const colors = points.map(p => p.raw.status === "NOK" ? "#dc3545" : "#1e3a5f");
+  const colors = points.map(p => {
+    const { value, lsl, usl, status } = p.raw;
+    const hasLsl = Number.isFinite(lsl);
+    const hasUsl = Number.isFinite(usl);
+    const isOutOfLimits = (hasLsl && value < lsl) || (hasUsl && value > usl);
+    if (isOutOfLimits || status === "NOK") return "#dc3545";
+    return "#28a745";
+  });
 
   let lsl = null, usl = null;
   for (const r of data) {
