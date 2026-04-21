@@ -1,1 +1,569 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Lognator - Dashboard de Logs</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Segoe UI, Arial, sans-serif; margin: 0; padding: 0; background: #f4f6f9; color: #222; }
+  header { background: #1e3a5f; color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 20px; }
+  header .stats { font-size: 13px; opacity: .9; }
+  .container { padding: 16px; }
+  .dropzone { border: 2px dashed #1e3a5f; background: #fff; border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: background .2s; margin-bottom: 14px; }
+  .dropzone.hover { background: #e0ecf8; }
+  .dropzone input { display: none; }
+  .dropzone button { background: #1e3a5f; color: #fff; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin: 4px; }
+  .dropzone button:hover { background: #2a527f; }
+  .progress-wrap { background: #ddd; height: 10px; border-radius: 5px; overflow: hidden; margin: 8px 0; display: none; }
+  .progress-bar { background: #28a745; height: 100%; width: 0%; transition: width .2s; }
+  .filters { background: #fff; padding: 12px; border-radius: 8px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .filters label { display: flex; flex-direction: column; font-size: 12px; color: #555; }
+  .filters input, .filters select { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; margin-top: 2px; }
+  .chart-wrap { background: #fff; padding: 12px; border-radius: 8px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.05); height: 420px; }
+  .table-wrap { background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.05); overflow-x: auto; max-height: 400px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; white-space: nowrap; }
+  th { background: #f0f2f5; position: sticky; top: 0; }
+  tr.nok td { background: #ffe5e5; }
+  .status-ok { color: #28a745; font-weight: bold; }
+  .status-nok { color: #dc3545; font-weight: bold; }
+  #loadingMsg { display: none; background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; }
+  #errorMsg { display: none; background: #f8d7da; color: #721c24; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; }
+  .summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .summary-card { background: #fff; padding: 8px 14px; border-radius: 6px; font-size: 13px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .summary-card b { font-size: 16px; color: #1e3a5f; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lognator - Dashboard de Análise de Logs</h1>
+  <div class="stats" id="headerStats">Nenhum arquivo carregado</div>
+</header>
+
+<div class="container">
+  <div class="dropzone" id="dropzone">
+    <p><b>Arraste uma pasta ou arquivos .txt aqui</b> ou selecione abaixo:</p>
+    <button type="button" onclick="document.getElementById('fileInput').click()">Selecionar arquivos</button>
+    <button type="button" onclick="document.getElementById('folderInput').click()">Selecionar pasta</button>
+    <input type="file" id="fileInput" multiple accept=".txt" />
+    <input type="file" id="folderInput" multiple webkitdirectory directory />
+    <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+  </div>
+
+  <div id="loadingMsg">Carregando arquivos...</div>
+  <div id="errorMsg"></div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="filters">
+    <label>Variável
+      <select id="filterVariable"><option value="">-- selecione --</option></select>
+    </label>
+    <label>Status
+      <select id="filterStatus">
+        <option value="ALL">Todos</option>
+        <option value="OK">OK</option>
+        <option value="NOK">NOK</option>
+      </select>
+    </label>
+    <label>Nome do arquivo (texto livre)
+      <input type="text" id="filterFile" placeholder="contém..." />
+    </label>
+    <label>Peça (ID)
+      <input type="text" id="filterPiece" placeholder="ID peça..." />
+    </label>
+    <label>Data inicial
+      <input type="datetime-local" id="filterDateStart" />
+    </label>
+    <label>Data final
+      <input type="datetime-local" id="filterDateEnd" />
+    </label>
+    <label>Valor mínimo (exclui &lt;)
+      <input type="number" step="any" id="filterValueMin" placeholder="ex: 0" />
+    </label>
+    <label>Valor máximo (exclui &gt;)
+      <input type="number" step="any" id="filterValueMax" placeholder="ex: 9999" />
+    </label>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="table-wrap">
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>Data/Hora</th>
+          <th>Arquivo</th>
+          <th>Pasta</th>
+          <th>Peça</th>
+          <th>Variável</th>
+          <th>LSL</th>
+          <th>Valor</th>
+          <th>USL</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   Lognator - Parser + Dashboard
+   ========================================================= */
+
+const ALL_DATA = [];
+let chartInstance = null;
+let filesLoaded = 0;
+
+/* ---------- Helpers ---------- */
+
+function parseDateTime(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  if (s.startsWith("0000/00/00")) return null;
+  const m = s.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi, se, ms] = m;
+  const date = new Date(+y, +mo - 1, +d, +h, +mi, +se, ms ? +ms.substring(0, 3) : 0);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+function looksLikeDate(str) {
+  return /^\d{4}[\/\-]\d{2}[\/\-]\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(String(str || "").trim());
+}
+
+function safeFloat(str) {
+  if (str === undefined || str === null) return null;
+  const s = String(str).trim();
+  if (s === "") return null;
+  const v = parseFloat(s);
+  return isNaN(v) ? null : v;
+}
+
+/* ---------- Parser de um arquivo ---------- */
+
+function parseFileContent(text, fileName, folderPath) {
+  const lines = text.split(/\r?\n/);
+  const result = [];
+  let partNumber = "";
+  let plcVersion = "";
+  let lastDateTime = null;
+
+  for (let rawLine of lines) {
+    if (!rawLine || !rawLine.trim()) continue;
+    const cols = rawLine.split("\t");
+
+    if (rawLine.includes("PART_NUMBER=") || rawLine.includes("PLC_VERSION=")) {
+      for (const c of cols) {
+        const eqIdx = c.indexOf("=");
+        if (eqIdx > 0) {
+          const key = c.substring(0, eqIdx).trim();
+          const val = c.substring(eqIdx + 1).trim();
+          if (key === "PART_NUMBER") partNumber = val;
+          if (key === "PLC_VERSION") plcVersion = val;
+        }
+      }
+      continue;
+    }
+
+    if (cols.length >= 3 && looksLikeDate(cols[2])) {
+      const dt = parseDateTime(cols[2]);
+      if (dt) lastDateTime = dt;
+      continue;
+    }
+
+    if (cols.length < 7) continue;
+    if (cols.some(c => c.trim() === "Disabled")) continue;
+
+    const pieceId = (cols[1] || "").trim();
+    const variableName = (cols[3] || "").trim();
+    const lsl = safeFloat(cols[4]);
+    const value = safeFloat(cols[5]);
+    const usl = safeFloat(cols[6]);
+
+    let status = "";
+    for (let i = 7; i < cols.length; i++) {
+      const v = (cols[i] || "").trim().toUpperCase();
+      if (v === "OK" || v === "NOK") { status = v; break; }
+    }
+
+    if (!variableName || value === null) continue;
+    if (!status) continue;
+
+    result.push({
+      fileName, folderPath: folderPath || "", partNumber, plcVersion,
+      datetime: lastDateTime, pieceId, variableName, value, lsl, usl, status
+    });
+  }
+  return result;
+}
+
+/* ---------- Leitura assíncrona ---------- */
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
+async function processFiles(fileList) {
+  const files = Array.from(fileList).filter(f => /\.txt$/i.test(f.name));
+  if (files.length === 0) {
+    showError("Nenhum arquivo .txt encontrado.");
+    return;
+  }
+
+  showLoading(true);
+  document.getElementById("progressWrap").style.display = "block";
+  const progressBar = document.getElementById("progressBar");
+
+  let processed = 0;
+  const BATCH = 20;
+  for (let i = 0; i < files.length; i += BATCH) {
+    const batch = files.slice(i, i + BATCH);
+    await Promise.all(batch.map(async (file) => {
+      try {
+        const text = await readFileAsText(file);
+        const relPath = file.webkitRelativePath || file.name;
+        const folder = relPath.includes("/") ? relPath.substring(0, relPath.lastIndexOf("/")) : "";
+        const records = parseFileContent(text, file.name, folder);
+        ALL_DATA.push(...records);
+      } catch (err) {
+        console.warn("Erro ao ler arquivo:", file.name, err);
+      }
+    }));
+    processed += batch.length;
+    progressBar.style.width = Math.round((processed / files.length) * 100) + "%";
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  filesLoaded += files.length;
+  showLoading(false);
+  document.getElementById("progressWrap").style.display = "none";
+  progressBar.style.width = "0%";
+  updateHeaderStats();
+  refreshUIFromData();
+}
+
+/* ---------- Drag-and-drop recursivo ---------- */
+
+async function getFilesFromDataTransfer(dt) {
+  const items = dt.items;
+  const files = [];
+  if (items && items.length && items[0].webkitGetAsEntry) {
+    const entries = [];
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry && items[i].webkitGetAsEntry();
+      if (entry) entries.push(entry);
+    }
+    for (const entry of entries) {
+      await traverseEntry(entry, "", files);
+    }
+  } else {
+    for (let i = 0; i < dt.files.length; i++) files.push(dt.files[i]);
+  }
+  return files;
+}
+
+function traverseEntry(entry, path, files) {
+  return new Promise((resolve) => {
+    if (entry.isFile) {
+      entry.file(file => {
+        try { Object.defineProperty(file, "webkitRelativePath", { value: path + file.name }); } catch(e) {}
+        files.push(file);
+        resolve();
+      }, () => resolve());
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const all = [];
+      const readBatch = () => {
+        reader.readEntries(async (batch) => {
+          if (!batch.length) {
+            for (const e of all) await traverseEntry(e, path + entry.name + "/", files);
+            resolve();
+          } else {
+            all.push(...batch);
+            readBatch();
+          }
+        }, () => resolve());
+      };
+      readBatch();
+    } else {
+      resolve();
+    }
+  });
+}
+
+/* ---------- UI ---------- */
+
+function showLoading(on) { document.getElementById("loadingMsg").style.display = on ? "block" : "none"; }
+function showError(msg) {
+  const el = document.getElementById("errorMsg");
+  el.textContent = msg; el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 5000);
+}
+function updateHeaderStats() {
+  document.getElementById("headerStats").textContent = `${filesLoaded} arquivos • ${ALL_DATA.length} registros`;
+}
+function populateVariableSelect() {
+  const sel = document.getElementById("filterVariable");
+  const current = sel.value;
+  const vars = [...new Set(ALL_DATA.map(r => r.variableName))].sort();
+  sel.innerHTML = '<option value="">-- selecione --</option>' +
+    vars.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+  if (current && vars.includes(current)) sel.value = current;
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function updateSummary(data) {
+  const el = document.getElementById("summary");
+  if (!data.length) { el.innerHTML = ""; return; }
+  const ok = data.filter(d => d.status === "OK").length;
+  const nok = data.filter(d => d.status === "NOK").length;
+  const vals = data.map(d => d.value).filter(v => v !== null);
+  const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+  const min = vals.length ? Math.min(...vals) : 0;
+  const max = vals.length ? Math.max(...vals) : 0;
+  el.innerHTML = `
+    <div class="summary-card">Registros: <b>${data.length}</b></div>
+    <div class="summary-card">OK: <b style="color:#28a745">${ok}</b></div>
+    <div class="summary-card">NOK: <b style="color:#dc3545">${nok}</b></div>
+    <div class="summary-card">Média: <b>${avg.toFixed(3)}</b></div>
+    <div class="summary-card">Mín: <b>${min.toFixed(3)}</b></div>
+    <div class="summary-card">Máx: <b>${max.toFixed(3)}</b></div>
+  `;
+}
+
+/* ---------- Filtros ---------- */
+
+function getFilteredData() {
+  const v = document.getElementById("filterVariable").value;
+  const st = document.getElementById("filterStatus").value;
+  const fTxt = document.getElementById("filterFile").value.toLowerCase().trim();
+  const pc = document.getElementById("filterPiece").value.trim();
+  const dStart = document.getElementById("filterDateStart").value;
+  const dEnd = document.getElementById("filterDateEnd").value;
+  const dStartD = dStart ? new Date(dStart) : null;
+  const dEndD = dEnd ? new Date(dEnd) : null;
+  const vMinRaw = document.getElementById("filterValueMin").value;
+  const vMaxRaw = document.getElementById("filterValueMax").value;
+  const vMin = vMinRaw === "" ? null : parseFloat(vMinRaw);
+  const vMax = vMaxRaw === "" ? null : parseFloat(vMaxRaw);
+
+  return ALL_DATA.filter(r => {
+    if (v && r.variableName !== v) return false;
+    if (st !== "ALL" && r.status !== st) return false;
+    if (fTxt && !r.fileName.toLowerCase().includes(fTxt) &&
+        !(r.folderPath || "").toLowerCase().includes(fTxt)) return false;
+    if (pc && String(r.pieceId) !== pc) return false;
+    if (dStartD && (!r.datetime || r.datetime < dStartD)) return false;
+    if (dEndD && (!r.datetime || r.datetime > dEndD)) return false;
+    // Exclui outliers (fundo de escala etc)
+    if (vMin !== null && !isNaN(vMin) && (r.value === null || r.value < vMin)) return false;
+    if (vMax !== null && !isNaN(vMax) && (r.value === null || r.value > vMax)) return false;
+    return true;
+  }).sort((a, b) => {
+    const ta = a.datetime ? a.datetime.getTime() : 0;
+    const tb = b.datetime ? b.datetime.getTime() : 0;
+    return ta - tb;
+  });
+}
+
+/* ---------- Gráfico ---------- */
+
+function renderChart(data) {
+  const ctx = document.getElementById("chart").getContext("2d");
+  if (chartInstance) chartInstance.destroy();
+
+  if (!data.length) { chartInstance = null; return; }
+
+  const points = data
+    .filter(r => r.datetime && r.value !== null)
+    .map(r => ({ x: r.datetime.getTime(), y: r.value, raw: r }))
+    .sort((a, b) => a.x - b.x);
+
+  if (!points.length) { chartInstance = null; return; }
+
+  const colors = points.map(p => p.raw.status === "NOK" ? "#dc3545" : "#1e3a5f");
+
+  let lsl = null, usl = null;
+  for (const r of data) {
+    if (lsl === null && r.lsl !== null) lsl = r.lsl;
+    if (usl === null && r.usl !== null) usl = r.usl;
+    if (lsl !== null && usl !== null) break;
+  }
+
+  const xMin = points[0].x;
+  const xMax = points[points.length - 1].x;
+
+  const datasets = [{
+    label: "Valor medido",
+    data: points.map(p => ({ x: p.x, y: p.y })),
+    borderColor: "#1e3a5f",
+    backgroundColor: "rgba(30,58,95,0.1)",
+    pointBackgroundColor: colors,
+    pointBorderColor: colors,
+    pointRadius: 4,
+    pointHoverRadius: 6,
+    borderWidth: 2,
+    tension: 0,
+    fill: false,
+    spanGaps: true,
+    showLine: true
+  }];
+
+  if (lsl !== null) {
+    datasets.push({
+      label: "LSL",
+      data: [{ x: xMin, y: lsl }, { x: xMax, y: lsl }],
+      borderColor: "#ff9800",
+      borderDash: [6, 4],
+      pointRadius: 0,
+      fill: false,
+      borderWidth: 1.5,
+      showLine: true
+    });
+  }
+  if (usl !== null) {
+    datasets.push({
+      label: "USL",
+      data: [{ x: xMin, y: usl }, { x: xMax, y: usl }],
+      borderColor: "#f44336",
+      borderDash: [6, 4],
+      pointRadius: 0,
+      fill: false,
+      borderWidth: 1.5,
+      showLine: true
+    });
+  }
+
+  chartInstance = new Chart(ctx, {
+    type: "line",
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      parsing: false,
+      interaction: { mode: "nearest", intersect: false },
+      plugins: {
+        legend: { position: "top" },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const x = items[0].parsed.x;
+              return formatDateShort(new Date(x));
+            },
+            afterBody: (items) => {
+              const it = items[0];
+              if (it.datasetIndex !== 0) return [];
+              const p = points[it.dataIndex];
+              if (!p) return [];
+              return [
+                "Peca: " + p.raw.pieceId,
+                "Arquivo: " + p.raw.fileName,
+                "Status: " + p.raw.status
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: "linear",
+          min: xMin,
+          max: xMax,
+          ticks: {
+            autoSkip: true,
+            maxTicksLimit: 10,
+            maxRotation: 60,
+            minRotation: 45,
+            callback: (v) => formatDateShort(new Date(v))
+          }
+        },
+        y: { beginAtZero: false }
+      }
+    }
+  });
+}
+
+function formatDateShort(d) {
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/* ---------- Tabela ---------- */
+
+function renderTable(data) {
+  const tbody = document.querySelector("#dataTable tbody");
+  const LIMIT = 1000;
+  const slice = data.slice(0, LIMIT);
+  const rows = slice.map(r => `
+    <tr class="${r.status === 'NOK' ? 'nok' : ''}">
+      <td>${r.datetime ? formatDateShort(r.datetime) : '-'}</td>
+      <td>${escapeHtml(r.fileName)}</td>
+      <td>${escapeHtml(r.folderPath || '')}</td>
+      <td>${escapeHtml(r.pieceId)}</td>
+      <td>${escapeHtml(r.variableName)}</td>
+      <td>${r.lsl !== null ? r.lsl : ''}</td>
+      <td>${r.value !== null ? r.value : ''}</td>
+      <td>${r.usl !== null ? r.usl : ''}</td>
+      <td class="${r.status === 'NOK' ? 'status-nok' : 'status-ok'}">${r.status}</td>
+    </tr>
+  `).join("");
+  const extra = data.length > LIMIT ?
+    `<tr><td colspan="9" style="text-align:center;color:#888">... exibindo ${LIMIT} de ${data.length} linhas ...</td></tr>` : "";
+  tbody.innerHTML = rows + extra;
+}
+
+/* ---------- Refresh / eventos ---------- */
+
+function refreshUIFromData() {
+  populateVariableSelect();
+  const sel = document.getElementById("filterVariable");
+  if (!sel.value && sel.options.length > 1) sel.value = sel.options[1].value;
+  applyFilters();
+}
+
+function applyFilters() {
+  const data = getFilteredData();
+  updateSummary(data);
+  renderChart(data);
+  renderTable(data);
+}
+
+document.getElementById("fileInput").addEventListener("change", e => processFiles(e.target.files));
+document.getElementById("folderInput").addEventListener("change", e => processFiles(e.target.files));
+
+const dz = document.getElementById("dropzone");
+["dragenter", "dragover"].forEach(ev => dz.addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); dz.classList.add("hover");
+}));
+["dragleave", "drop"].forEach(ev => dz.addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); dz.classList.remove("hover");
+}));
+dz.addEventListener("drop", async e => {
+  const files = await getFilesFromDataTransfer(e.dataTransfer);
+  if (files.length) processFiles(files);
+});
+
+["filterVariable", "filterStatus", "filterFile", "filterPiece",
+ "filterDateStart", "filterDateEnd", "filterValueMin", "filterValueMax"]
+  .forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener("change", applyFilters);
+    el.addEventListener("input", applyFilters);
+  });
+</script>
+</body>
+</html>
 
