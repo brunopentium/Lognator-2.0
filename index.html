@@ -99,6 +99,50 @@
     thead th { position: sticky; top: 0; background: #0b1220; z-index: 2; }
     .muted { color: var(--muted); }
     .error { color: #fca5a5; }
+    .dist-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .dist-panel {
+      border: 1px solid #233041;
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(2,6,23,.5);
+    }
+    .dist-title {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .metrics-grid input {
+      padding: 6px 8px;
+      font-size: .82rem;
+      text-align: center;
+    }
+    .inline-check {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .inline-check input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+    .small-input {
+      max-width: 120px;
+    }
+    @media (max-width: 900px) {
+      .dist-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -172,6 +216,123 @@
     </div>
 
     <div class="card">
+      <h3 style="margin-top:0">Distribuição por amostras (histograma + curva normal)</h3>
+      <div class="dist-grid">
+        <div class="dist-panel">
+          <h4 class="dist-title">Gráfico de distribuição 1</h4>
+          <div class="grid">
+            <div class="col-6">
+              <label>Variável</label>
+              <select id="distVariable1"><option value="">Todas</option></select>
+            </div>
+            <div class="col-6">
+              <label>Status</label>
+              <select id="distStatus1">
+                <option value="ALL">ALL</option>
+                <option value="OK">OK</option>
+                <option value="NOK">NOK</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label>Arquivo contém</label>
+              <input id="distFile1" type="text" />
+            </div>
+            <div class="col-6">
+              <label>Peça (ID)</label>
+              <input id="distPiece1" type="text" />
+            </div>
+            <div class="col-6">
+              <label>Data inicial</label>
+              <input id="distStart1" type="datetime-local" />
+            </div>
+            <div class="col-6">
+              <label>Data final</label>
+              <input id="distEnd1" type="datetime-local" />
+            </div>
+            <div class="col-12">
+              <label class="inline-check"><input id="distCustomLimits1" type="checkbox" />Usar LSL/USL customizados</label>
+            </div>
+            <div class="col-4">
+              <label>LSL customizado</label>
+              <input id="distLsl1" class="small-input" type="number" step="any" disabled />
+            </div>
+            <div class="col-4">
+              <label>USL customizado</label>
+              <input id="distUsl1" class="small-input" type="number" step="any" disabled />
+            </div>
+            <div class="col-4">
+              <label>Nº subgrupos</label>
+              <input id="distSubgroup1" class="small-input" type="number" min="1" step="1" value="1" />
+            </div>
+          </div>
+          <canvas id="distChart1" height="150"></canvas>
+          <div class="metrics-grid">
+            <div><label>CP</label><input id="distCp1" readonly /></div>
+            <div><label>CPK</label><input id="distCpk1" readonly /></div>
+            <div><label>PP</label><input id="distPp1" readonly /></div>
+            <div><label>PPK</label><input id="distPpk1" readonly /></div>
+          </div>
+        </div>
+
+        <div class="dist-panel">
+          <h4 class="dist-title">Gráfico de distribuição 2</h4>
+          <div class="grid">
+            <div class="col-6">
+              <label>Variável</label>
+              <select id="distVariable2"><option value="">Todas</option></select>
+            </div>
+            <div class="col-6">
+              <label>Status</label>
+              <select id="distStatus2">
+                <option value="ALL">ALL</option>
+                <option value="OK">OK</option>
+                <option value="NOK">NOK</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label>Arquivo contém</label>
+              <input id="distFile2" type="text" />
+            </div>
+            <div class="col-6">
+              <label>Peça (ID)</label>
+              <input id="distPiece2" type="text" />
+            </div>
+            <div class="col-6">
+              <label>Data inicial</label>
+              <input id="distStart2" type="datetime-local" />
+            </div>
+            <div class="col-6">
+              <label>Data final</label>
+              <input id="distEnd2" type="datetime-local" />
+            </div>
+            <div class="col-12">
+              <label class="inline-check"><input id="distCustomLimits2" type="checkbox" />Usar LSL/USL customizados</label>
+            </div>
+            <div class="col-4">
+              <label>LSL customizado</label>
+              <input id="distLsl2" class="small-input" type="number" step="any" disabled />
+            </div>
+            <div class="col-4">
+              <label>USL customizado</label>
+              <input id="distUsl2" class="small-input" type="number" step="any" disabled />
+            </div>
+            <div class="col-4">
+              <label>Nº subgrupos</label>
+              <input id="distSubgroup2" class="small-input" type="number" min="1" step="1" value="1" />
+            </div>
+          </div>
+          <canvas id="distChart2" height="150"></canvas>
+          <div class="metrics-grid">
+            <div><label>CP</label><input id="distCp2" readonly /></div>
+            <div><label>CPK</label><input id="distCpk2" readonly /></div>
+            <div><label>PP</label><input id="distPp2" readonly /></div>
+            <div><label>PPK</label><input id="distPpk2" readonly /></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <h3 style="margin-top:0">Tabela de dados filtrados</h3>
       <div class="table-wrap">
         <table>
@@ -200,7 +361,8 @@
     const state = {
       allRecords: [],
       allFiles: 0,
-      chart: null
+      chart: null,
+      distCharts: {}
     };
 
     // Elementos
@@ -221,6 +383,23 @@
     const endDate = document.getElementById('endDate');
     const tableBody = document.getElementById('tableBody');
     const clearBtn = document.getElementById('clearBtn');
+    const distConfigs = [1, 2].map((n) => ({
+      chartId: `distChart${n}`,
+      variable: document.getElementById(`distVariable${n}`),
+      status: document.getElementById(`distStatus${n}`),
+      fileName: document.getElementById(`distFile${n}`),
+      piece: document.getElementById(`distPiece${n}`),
+      startDate: document.getElementById(`distStart${n}`),
+      endDate: document.getElementById(`distEnd${n}`),
+      customLimits: document.getElementById(`distCustomLimits${n}`),
+      lslInput: document.getElementById(`distLsl${n}`),
+      uslInput: document.getElementById(`distUsl${n}`),
+      subgroupInput: document.getElementById(`distSubgroup${n}`),
+      cpEl: document.getElementById(`distCp${n}`),
+      cpkEl: document.getElementById(`distCpk${n}`),
+      ppEl: document.getElementById(`distPp${n}`),
+      ppkEl: document.getElementById(`distPpk${n}`)
+    }));
 
     // Utilitários
     const toNumber = (v) => {
@@ -585,6 +764,11 @@
       const vars = [...new Set(state.allRecords.map(r => r.variableName))].sort((a, b) => a.localeCompare(b));
       variableFilter.innerHTML = '<option value="">Todas</option>' + vars.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
       if (vars.includes(selected)) variableFilter.value = selected;
+      distConfigs.forEach((cfg) => {
+        const prev = cfg.variable.value;
+        cfg.variable.innerHTML = '<option value="">Todas</option>' + vars.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+        if (vars.includes(prev)) cfg.variable.value = prev;
+      });
     }
 
     function escapeHtml(str) {
@@ -597,12 +781,23 @@
     }
 
     function getFilteredRecords() {
-      const variable = variableFilter.value;
-      const status = statusFilter.value;
-      const fileText = fileNameFilter.value.trim().toLowerCase();
-      const piece = pieceFilter.value.trim().toLowerCase();
-      const start = startDate.value ? new Date(startDate.value) : null;
-      const end = endDate.value ? new Date(endDate.value) : null;
+      return getFilteredRecordsFromControls({
+        variable: variableFilter,
+        status: statusFilter,
+        fileName: fileNameFilter,
+        piece: pieceFilter,
+        startDate,
+        endDate
+      });
+    }
+
+    function getFilteredRecordsFromControls(controls) {
+      const variable = controls.variable.value;
+      const status = controls.status.value;
+      const fileText = controls.fileName.value.trim().toLowerCase();
+      const piece = controls.piece.value.trim().toLowerCase();
+      const start = controls.startDate.value ? new Date(controls.startDate.value) : null;
+      const end = controls.endDate.value ? new Date(controls.endDate.value) : null;
 
       return state.allRecords
         .filter(r => !variable || r.variableName === variable)
@@ -612,6 +807,171 @@
         .filter(r => !start || (r.datetime && r.datetime >= start))
         .filter(r => !end || (r.datetime && r.datetime <= end))
         .sort((a, b) => (a.datetime?.getTime() || 0) - (b.datetime?.getTime() || 0));
+    }
+
+    function stdev(values) {
+      if (!values.length) return NaN;
+      const mean = average(values);
+      const variance = average(values.map(v => (v - mean) ** 2));
+      return Math.sqrt(variance);
+    }
+
+    function subgroupSigma(values, subgroupSize) {
+      if (subgroupSize <= 1 || values.length < 2) return stdev(values);
+      let numerator = 0;
+      let denominator = 0;
+
+      for (let i = 0; i < values.length; i += subgroupSize) {
+        const group = values.slice(i, i + subgroupSize);
+        if (group.length < 2) continue;
+        const sg = stdev(group);
+        numerator += (group.length - 1) * (sg ** 2);
+        denominator += group.length - 1;
+      }
+
+      if (!denominator) return stdev(values);
+      return Math.sqrt(numerator / denominator);
+    }
+
+    function normalPdf(x, mean, sigma) {
+      if (!Number.isFinite(sigma) || sigma <= 0) return 0;
+      const a = 1 / (sigma * Math.sqrt(2 * Math.PI));
+      const z = (x - mean) / sigma;
+      return a * Math.exp(-0.5 * z * z);
+    }
+
+    function computeHistogram(values, binCount) {
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const span = max - min || 1;
+      const safeBins = Math.max(5, Math.min(60, binCount || Math.round(Math.sqrt(values.length))));
+      const binWidth = span / safeBins;
+      const bins = Array.from({ length: safeBins }, (_, i) => ({
+        min: min + i * binWidth,
+        max: min + (i + 1) * binWidth,
+        count: 0
+      }));
+
+      for (const v of values) {
+        let idx = Math.floor((v - min) / binWidth);
+        if (idx >= safeBins) idx = safeBins - 1;
+        if (idx < 0) idx = 0;
+        bins[idx].count += 1;
+      }
+
+      return { bins, binWidth };
+    }
+
+    function setCapabilityMetrics(cfg, metrics) {
+      cfg.cpEl.value = metrics.cp;
+      cfg.cpkEl.value = metrics.cpk;
+      cfg.ppEl.value = metrics.pp;
+      cfg.ppkEl.value = metrics.ppk;
+    }
+
+    function renderDistributionChart(cfg) {
+      const records = getFilteredRecordsFromControls(cfg);
+      const values = records.map(r => r.value).filter(Number.isFinite);
+      const subgroupSize = Math.max(1, parseInt(cfg.subgroupInput.value || '1', 10) || 1);
+      const hasCustom = cfg.customLimits.checked;
+      cfg.lslInput.disabled = !hasCustom;
+      cfg.uslInput.disabled = !hasCustom;
+
+      const fallbackMetrics = { cp: '-', cpk: '-', pp: '-', ppk: '-' };
+      if (!values.length) {
+        setCapabilityMetrics(cfg, fallbackMetrics);
+        if (state.distCharts[cfg.chartId]) {
+          state.distCharts[cfg.chartId].destroy();
+          state.distCharts[cfg.chartId] = null;
+        }
+        return;
+      }
+
+      const mean = average(values);
+      const sigmaOverall = stdev(values);
+      const sigmaWithin = subgroupSigma(values, subgroupSize);
+
+      const dataLsl = Math.min(...records.map(r => r.lsl).filter(Number.isFinite), ...values);
+      const dataUsl = Math.max(...records.map(r => r.usl).filter(Number.isFinite), ...values);
+      const customLsl = toNumber(cfg.lslInput.value);
+      const customUsl = toNumber(cfg.uslInput.value);
+      const lsl = hasCustom && Number.isFinite(customLsl) ? customLsl : dataLsl;
+      const usl = hasCustom && Number.isFinite(customUsl) ? customUsl : dataUsl;
+      const safeRange = Number.isFinite(lsl) && Number.isFinite(usl) && usl > lsl;
+
+      const cp = safeRange && sigmaWithin > 0 ? (usl - lsl) / (6 * sigmaWithin) : NaN;
+      const cpk = safeRange && sigmaWithin > 0
+        ? Math.min((usl - mean) / (3 * sigmaWithin), (mean - lsl) / (3 * sigmaWithin))
+        : NaN;
+      const pp = safeRange && sigmaOverall > 0 ? (usl - lsl) / (6 * sigmaOverall) : NaN;
+      const ppk = safeRange && sigmaOverall > 0
+        ? Math.min((usl - mean) / (3 * sigmaOverall), (mean - lsl) / (3 * sigmaOverall))
+        : NaN;
+
+      setCapabilityMetrics(cfg, {
+        cp: Number.isFinite(cp) ? cp.toFixed(3) : '-',
+        cpk: Number.isFinite(cpk) ? cpk.toFixed(3) : '-',
+        pp: Number.isFinite(pp) ? pp.toFixed(3) : '-',
+        ppk: Number.isFinite(ppk) ? ppk.toFixed(3) : '-'
+      });
+
+      const { bins, binWidth } = computeHistogram(values);
+      const labels = bins.map(b => ((b.min + b.max) / 2).toFixed(3));
+      const counts = bins.map(b => b.count);
+      const normalCurve = bins.map(b => {
+        const x = (b.min + b.max) / 2;
+        return normalPdf(x, mean, sigmaOverall) * values.length * binWidth;
+      });
+
+      if (state.distCharts[cfg.chartId]) state.distCharts[cfg.chartId].destroy();
+      state.distCharts[cfg.chartId] = new Chart(document.getElementById(cfg.chartId).getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Histograma',
+              data: counts,
+              backgroundColor: 'rgba(56,189,248,.45)',
+              borderColor: '#38bdf8',
+              borderWidth: 1
+            },
+            {
+              type: 'line',
+              label: 'Curva normal',
+              data: normalCurve,
+              borderColor: '#f59e0b',
+              backgroundColor: '#f59e0b',
+              tension: 0.25,
+              pointRadius: 0,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { color: '#cbd5e1' },
+              grid: { color: 'rgba(148,163,184,.12)' }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#cbd5e1' },
+              grid: { color: 'rgba(148,163,184,.12)' }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: '#e2e8f0' } }
+          }
+        }
+      });
+    }
+
+    function renderAllDistributionCharts() {
+      distConfigs.forEach(renderDistributionChart);
     }
 
     function renderChart(records) {
@@ -733,6 +1093,7 @@
       const filtered = getFilteredRecords();
       renderChart(filtered);
       renderTable(filtered);
+      renderAllDistributionCharts();
     }
 
     // ========================
@@ -783,12 +1144,47 @@
       endDate
     ].forEach(el => el.addEventListener('input', applyFiltersAndRender));
 
+    distConfigs.forEach((cfg) => {
+      [
+        cfg.variable,
+        cfg.status,
+        cfg.fileName,
+        cfg.piece,
+        cfg.startDate,
+        cfg.endDate,
+        cfg.customLimits,
+        cfg.lslInput,
+        cfg.uslInput,
+        cfg.subgroupInput
+      ].forEach(el => el.addEventListener('input', renderAllDistributionCharts));
+      cfg.customLimits.addEventListener('change', renderAllDistributionCharts);
+    });
+
     clearBtn.addEventListener('click', () => {
       state.allRecords = [];
       state.allFiles = 0;
       fileCountEl.textContent = '0';
       recordCountEl.textContent = '0';
       variableFilter.innerHTML = '<option value="">Todas</option>';
+      distConfigs.forEach((cfg) => {
+        cfg.variable.innerHTML = '<option value="">Todas</option>';
+        cfg.status.value = 'ALL';
+        cfg.fileName.value = '';
+        cfg.piece.value = '';
+        cfg.startDate.value = '';
+        cfg.endDate.value = '';
+        cfg.customLimits.checked = false;
+        cfg.lslInput.value = '';
+        cfg.uslInput.value = '';
+        cfg.lslInput.disabled = true;
+        cfg.uslInput.disabled = true;
+        cfg.subgroupInput.value = '1';
+        setCapabilityMetrics(cfg, { cp: '', cpk: '', pp: '', ppk: '' });
+        if (state.distCharts[cfg.chartId]) {
+          state.distCharts[cfg.chartId].destroy();
+          state.distCharts[cfg.chartId] = null;
+        }
+      });
       tableBody.innerHTML = '';
       setLoading('Memória limpa.', 0);
       errorBox.textContent = '';
@@ -801,6 +1197,7 @@
 
     // Inicialização de gráfico vazio
     renderChart([]);
+    renderAllDistributionCharts();
   </script>
 </body>
 </html>
