@@ -326,34 +326,44 @@
     }
 
     function parseDataLine(line) {
-      // Tenta por TAB primeiro, depois fallback por múltiplos espaços
-      let cols = line.split('\t').map(s => s.trim()).filter(Boolean);
+      // Preserva colunas vazias em arquivos tabulados para não deslocar índices.
+      let cols = line.split('\t').map(s => s.trim());
       if (cols.length < 7) {
-        cols = line.trim().split(/\s+/);
+        cols = line.trim().split(/\s+/).map(s => s.trim()).filter(Boolean);
       }
 
-      if (cols.length < 7) return null;
+      const nonEmptyCols = cols.filter(Boolean);
+      if (nonEmptyCols.length < 7) return null;
 
-      // Linha de início de teste possui datetimes nas colunas 3+.
-      const maybeDate = parseDateTime(cols[2]);
-      if (maybeDate && cols.length >= 8 && /^(OK|NOK)$/i.test(cols[cols.length - 2] || '')) {
+      // Linha de início de teste normalmente contém data/hora e status.
+      const statusCandidate = nonEmptyCols.find(c => /^(OK|NOK)$/i.test(c));
+      const dateToken = nonEmptyCols.find(c => parseDateTime(c));
+      const maybeDate = parseDateTime(dateToken);
+      if (maybeDate && statusCandidate && nonEmptyCols.some(c => c.includes('/') || c.includes('-'))) {
         return {
           type: 'testStart',
-          pieceId: cols[1],
+          pieceId: nonEmptyCols[1] || '',
           datetime: maybeDate
         };
       }
 
-      // Formato esperado medida:
-      // [0]=station [1]=pieceId [2]=stepId [3]=variable [4]=lsl [5]=value [6]=usl ... [status] [enabled]
-      const pieceId = cols[1];
-      const variableName = cols[3] || '';
-      const lsl = toNumber(cols[4]);
-      const value = toNumber(cols[5]);
-      const usl = toNumber(cols[6]);
-      const statusCandidate = cols.find(c => /^(OK|NOK)$/i.test(c));
+      // Localiza bloco numérico [LSL, VALOR, USL] de forma mais robusta.
+      let metricStart = -1;
+      for (let i = 0; i <= nonEmptyCols.length - 3; i++) {
+        const trio = [toNumber(nonEmptyCols[i]), toNumber(nonEmptyCols[i + 1]), toNumber(nonEmptyCols[i + 2])];
+        if (trio.every(Number.isFinite)) {
+          metricStart = i;
+          break;
+        }
+      }
+
+      const pieceId = nonEmptyCols[1] || '';
+      const variableName = metricStart > 0 ? (nonEmptyCols[metricStart - 1] || '') : (nonEmptyCols[3] || '');
+      const lsl = metricStart >= 0 ? toNumber(nonEmptyCols[metricStart]) : toNumber(nonEmptyCols[4]);
+      const value = metricStart >= 0 ? toNumber(nonEmptyCols[metricStart + 1]) : toNumber(nonEmptyCols[5]);
+      const usl = metricStart >= 0 ? toNumber(nonEmptyCols[metricStart + 2]) : toNumber(nonEmptyCols[6]);
       const status = statusCandidate ? statusCandidate.toUpperCase() : '';
-      const hasDisabled = cols.some(c => /^Disabled$/i.test(c));
+      const hasDisabled = nonEmptyCols.some(c => /^Disabled$/i.test(c));
 
       return {
         type: 'measurement',
