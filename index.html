@@ -104,13 +104,17 @@
 <body>
   <div class="container">
     <h1>Lognator TXT Dashboard</h1>
-    <p class="subtitle">Carregue milhares de .txt (incluindo subpastas) e explore tendências por variável.</p>
+    <p class="subtitle">Carregue milhares de .txt (incluindo subpastas) ou um CSV unificado e explore tendências por variável.</p>
 
     <div class="card">
       <div class="grid">
         <div class="col-6">
           <label>Seleção de arquivos/pasta (.txt)</label>
           <input id="fileInput" type="file" multiple webkitdirectory directory accept=".txt,text/plain" />
+        </div>
+        <div class="col-6">
+          <label>Carregar arquivo unificado (.csv)</label>
+          <input id="unifiedCsvInput" type="file" accept=".csv,text/csv" />
         </div>
         <div class="col-6">
           <label>&nbsp;</label>
@@ -201,6 +205,7 @@
 
     // Elementos
     const fileInput = document.getElementById('fileInput');
+    const unifiedCsvInput = document.getElementById('unifiedCsvInput');
     const dropZone = document.getElementById('dropZone');
     const progressBar = document.getElementById('progressBar');
     const fileCountEl = document.getElementById('fileCount');
@@ -405,6 +410,118 @@
         reader.onerror = () => reject(new Error(`Falha ao ler ${file.name}`));
         reader.readAsText(file);
       });
+    }
+
+    function parseCsvSemicolon(text) {
+      const rows = [];
+      let row = [];
+      let field = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+
+        if (ch === '"') {
+          if (inQuotes && next === '"') {
+            field += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+
+        if (!inQuotes && ch === ';') {
+          row.push(field);
+          field = '';
+          continue;
+        }
+
+        if (!inQuotes && (ch === '\n' || ch === '\r')) {
+          if (ch === '\r' && next === '\n') i++;
+          row.push(field);
+          rows.push(row);
+          row = [];
+          field = '';
+          continue;
+        }
+
+        field += ch;
+      }
+
+      if (field.length || row.length) {
+        row.push(field);
+        rows.push(row);
+      }
+
+      return rows;
+    }
+
+    function normalizeHeader(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    async function processUnifiedCsvFile(file) {
+      errorBox.textContent = '';
+      setLoading(`Lendo CSV ${file.name}...`, 5);
+
+      let csvText = '';
+      try {
+        csvText = await readFileText(file);
+      } catch (err) {
+        errorBox.textContent = err.message;
+        setLoading('Falha ao carregar CSV.', 0);
+        return;
+      }
+
+      const rows = parseCsvSemicolon(csvText.replace(/^\uFEFF/, ''));
+      if (!rows.length) {
+        setLoading('CSV vazio.', 0);
+        return;
+      }
+
+      const header = rows[0].map(normalizeHeader);
+      const nameIdx = header.indexOf('nome_arquivo');
+      const pathIdx = header.indexOf('caminho_relativo');
+      const contentIdx = header.indexOf('conteudo');
+
+      if (contentIdx < 0) {
+        errorBox.textContent = 'CSV inválido: coluna "conteudo" não encontrada.';
+        setLoading('Estrutura do CSV inválida.', 0);
+        return;
+      }
+
+      const dataRows = rows.slice(1);
+      if (!dataRows.length) {
+        setLoading('CSV sem linhas de dados.', 0);
+        return;
+      }
+
+      const appendedRecords = [];
+      const chunk = 200;
+      for (let i = 0; i < dataRows.length; i++) {
+        const cols = dataRows[i];
+        const fileName = cols[nameIdx] || `arquivo_${i + 1}.txt`;
+        const filePath = cols[pathIdx] || fileName;
+        const content = cols[contentIdx] || '';
+        const records = parseTxtContent(content, { name: fileName, relativePath: filePath });
+        appendArray(appendedRecords, records);
+
+        if ((i + 1) % chunk === 0 || i === dataRows.length - 1) {
+          const pct = Math.round(((i + 1) / dataRows.length) * 100);
+          setLoading(`Processando CSV... ${i + 1}/${dataRows.length}`, pct);
+          await new Promise(r => setTimeout(r, 0));
+        }
+      }
+
+      state.allFiles += dataRows.length;
+      appendArray(state.allRecords, appendedRecords);
+      fileCountEl.textContent = String(state.allFiles);
+      recordCountEl.textContent = String(state.allRecords.length);
+      setLoading(`CSV processado: ${dataRows.length} arquivos, ${appendedRecords.length} medições.`, 100);
+      rebuildVariableFilter();
+      applyFiltersAndRender();
     }
 
     // processamento em lote para não travar UI
@@ -614,6 +731,13 @@
       const files = e.target.files || [];
       await processFiles(files);
       fileInput.value = '';
+    });
+
+    unifiedCsvInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      await processUnifiedCsvFile(file);
+      unifiedCsvInput.value = '';
     });
 
     ['dragenter', 'dragover'].forEach(evt => {
