@@ -425,11 +425,11 @@ function renderChart(data) {
     pointBorderColor: colors,
     pointRadius,
     pointHoverRadius,
-    borderWidth: 2,
+    borderWidth: 0,
     tension: 0,
     fill: false,
     spanGaps: true,
-    showLine: true
+    showLine: false
   }];
 
   if (lsl !== null) {
