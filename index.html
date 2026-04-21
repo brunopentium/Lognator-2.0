@@ -251,6 +251,10 @@
       progressBar.value = Math.max(0, Math.min(100, percent));
     }
 
+    function appendArray(target, source) {
+      for (const item of source) target.push(item);
+    }
+
     // ========================
     // Leitura recursiva drag-and-drop
     // ========================
@@ -277,7 +281,7 @@
               }
               for (const e of entries) {
                 const files = await walkFileTree(e);
-                all.push(...files);
+                appendArray(all, files);
               }
               readEntries();
             }, () => resolve(all));
@@ -296,7 +300,7 @@
         const entry = item.webkitGetAsEntry && item.webkitGetAsEntry();
         if (entry) {
           const treeFiles = await walkFileTree(entry);
-          files.push(...treeFiles);
+          appendArray(files, treeFiles);
         } else {
           const f = item.getAsFile && item.getAsFile();
           if (f && /\.txt$/i.test(f.name)) files.push(f);
@@ -428,7 +432,7 @@
           try {
             const text = await readFileText(file);
             const records = parseTxtContent(text, file);
-            state.allRecords.push(...records);
+            appendArray(state.allRecords, records);
           } catch (err) {
             errorBox.textContent = `${errorBox.textContent}\n${err.message}`.trim();
           }
