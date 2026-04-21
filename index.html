@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lognator TXT Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #9ca3af;
+      --text: #f9fafb;
+      --accent: #38bdf8;
+      --ok: #22c55e;
+      --nok: #ef4444;
+      --line: #334155;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #020617, #0f172a 35%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 18px;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { margin: 0 0 6px; font-size: 1.5rem; }
+    .subtitle { margin: 0 0 14px; color: var(--muted); }
+    .card {
+      background: rgba(17,24,39,.9);
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .col-12 { grid-column: span 12; }
+    .col-6 { grid-column: span 6; }
+    .col-4 { grid-column: span 4; }
+    .col-3 { grid-column: span 3; }
+    @media (max-width: 900px) {
+      .col-6, .col-4, .col-3 { grid-column: span 12; }
+    }
+    label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
+    input, select, button {
+      width: 100%;
+      background: #0b1220;
+      color: var(--text);
+      border: 1px solid #253041;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    button { cursor: pointer; background: #0c4a6e; border-color: #0ea5e9; }
+    button:hover { filter: brightness(1.1); }
+    #dropZone {
+      border: 2px dashed #334155;
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      transition: .2s;
+      color: var(--muted);
+    }
+    #dropZone.dragover {
+      border-color: var(--accent);
+      background: rgba(56,189,248,.08);
+      color: var(--text);
+    }
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 8px;
+      font-size: .9rem;
+    }
+    progress { width: 260px; max-width: 100%; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: bold;
+    }
+    .badge.ok { background: rgba(34,197,94,.2); color: #86efac; }
+    .badge.nok { background: rgba(239,68,68,.2); color: #fca5a5; }
+    .table-wrap {
+      max-height: 360px;
+      overflow: auto;
+      border: 1px solid #233041;
+      border-radius: 10px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    th, td { padding: 8px; border-bottom: 1px solid #1f2937; white-space: nowrap; }
+    thead th { position: sticky; top: 0; background: #0b1220; z-index: 2; }
+    .muted { color: var(--muted); }
+    .error { color: #fca5a5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Lognator TXT Dashboard</h1>
+    <p class="subtitle">Carregue milhares de .txt (incluindo subpastas) e explore tendências por variável.</p>
+
+    <div class="card">
+      <div class="grid">
+        <div class="col-6">
+          <label>Seleção de arquivos/pasta (.txt)</label>
+          <input id="fileInput" type="file" multiple webkitdirectory directory accept=".txt,text/plain" />
+        </div>
+        <div class="col-6">
+          <label>&nbsp;</label>
+          <button id="clearBtn" type="button">Limpar dados em memória</button>
+        </div>
+        <div class="col-12">
+          <div id="dropZone">Arraste e solte arquivos/pastas aqui (Chrome/Edge suporta entrada de diretórios).</div>
+        </div>
+      </div>
+      <div class="status-row">
+        <div>Arquivos TXT detectados: <strong id="fileCount">0</strong></div>
+        <div>Registros consolidados: <strong id="recordCount">0</strong></div>
+        <div id="loadingMsg" class="muted">Aguardando carregamento...</div>
+        <progress id="progressBar" value="0" max="100"></progress>
+      </div>
+      <div id="errorBox" class="error"></div>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div class="col-3">
+          <label>Variável</label>
+          <select id="variableFilter"><option value="">Todas</option></select>
+        </div>
+        <div class="col-3">
+          <label>Status</label>
+          <select id="statusFilter">
+            <option value="ALL">ALL</option>
+            <option value="OK">OK</option>
+            <option value="NOK">NOK</option>
+          </select>
+        </div>
+        <div class="col-3">
+          <label>Arquivo contém</label>
+          <input id="fileNameFilter" type="text" placeholder="Ex: linhaA/lote_01" />
+        </div>
+        <div class="col-3">
+          <label>Peça (ID)</label>
+          <input id="pieceFilter" type="text" placeholder="Ex: 1, 2, 145" />
+        </div>
+        <div class="col-3">
+          <label>Data inicial</label>
+          <input id="startDate" type="datetime-local" />
+        </div>
+        <div class="col-3">
+          <label>Data final</label>
+          <input id="endDate" type="datetime-local" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <canvas id="chart" height="120"></canvas>
+      <p class="muted" id="chartMeta">Sem dados para exibir.</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Tabela de dados filtrados</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Arquivo</th>
+              <th>Peça</th>
+              <th>Variável</th>
+              <th>Valor</th>
+              <th>LSL</th>
+              <th>USL</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========================
+    // Estado global
+    // ========================
+    const state = {
+      allRecords: [],
+      allFiles: 0,
+      chart: null
+    };
+
+    // Elementos
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const progressBar = document.getElementById('progressBar');
+    const fileCountEl = document.getElementById('fileCount');
+    const recordCountEl = document.getElementById('recordCount');
+    const loadingMsg = document.getElementById('loadingMsg');
+    const errorBox = document.getElementById('errorBox');
+
+    const variableFilter = document.getElementById('variableFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const fileNameFilter = document.getElementById('fileNameFilter');
+    const pieceFilter = document.getElementById('pieceFilter');
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    const tableBody = document.getElementById('tableBody');
+    const clearBtn = document.getElementById('clearBtn');
+
+    // Utilitários
+    const toNumber = (v) => {
+      if (v == null) return NaN;
+      const cleaned = String(v).replace(',', '.').trim();
+      const n = parseFloat(cleaned);
+      return Number.isFinite(n) ? n : NaN;
+    };
+
+    const parseDateTime = (raw) => {
+      if (!raw) return null;
+      const val = String(raw).trim();
+
+      // aceita YYYY/MM/DD HH:mm:ss(.SSS) e YYYY-MM-DD HH:mm:ss
+      const m = val.match(/(\d{4})[\/-](\d{2})[\/-](\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?/);
+      if (!m) return null;
+
+      const [, y, mo, d, h, mi, s, ms = '0'] = m;
+      const dt = new Date(
+        Number(y), Number(mo) - 1, Number(d),
+        Number(h), Number(mi), Number(s), Number(ms.padEnd(3, '0'))
+      );
+      return Number.isNaN(dt.getTime()) ? null : dt;
+    };
+
+    const formatDate = (d) => {
+      if (!(d instanceof Date) || Number.isNaN(d.getTime())) return '';
+      return d.toLocaleString('pt-BR', { hour12: false });
+    };
+
+    function setLoading(text, percent = 0) {
+      loadingMsg.textContent = text;
+      progressBar.value = Math.max(0, Math.min(100, percent));
+    }
+
+    // ========================
+    // Leitura recursiva drag-and-drop
+    // ========================
+    function walkFileTree(entry) {
+      return new Promise((resolve) => {
+        if (entry.isFile) {
+          entry.file((file) => {
+            if (/\.txt$/i.test(file.name)) {
+              file.relativePath = entry.fullPath ? entry.fullPath.replace(/^\//, '') : file.name;
+              resolve([file]);
+            } else {
+              resolve([]);
+            }
+          }, () => resolve([]));
+        } else if (entry.isDirectory) {
+          const reader = entry.createReader();
+          const all = [];
+
+          const readEntries = () => {
+            reader.readEntries(async (entries) => {
+              if (!entries.length) {
+                resolve(all);
+                return;
+              }
+              for (const e of entries) {
+                const files = await walkFileTree(e);
+                all.push(...files);
+              }
+              readEntries();
+            }, () => resolve(all));
+          };
+
+          readEntries();
+        } else {
+          resolve([]);
+        }
+      });
+    }
+
+    async function filesFromDropItems(items) {
+      const files = [];
+      for (const item of items) {
+        const entry = item.webkitGetAsEntry && item.webkitGetAsEntry();
+        if (entry) {
+          const treeFiles = await walkFileTree(entry);
+          files.push(...treeFiles);
+        } else {
+          const f = item.getAsFile && item.getAsFile();
+          if (f && /\.txt$/i.test(f.name)) files.push(f);
+        }
+      }
+      return files;
+    }
+
+    // ========================
+    // Parsing robusto
+    // ========================
+    function extractHeaderInfo(text) {
+      const firstLine = (text.split(/\r?\n/).find(line => line.trim()) || '').trim();
+      const partNumberMatch = firstLine.match(/PART_NUMBER=([^\s]+)/i);
+      return {
+        partNumber: partNumberMatch ? partNumberMatch[1] : ''
+      };
+    }
+
+    function parseDataLine(line) {
+      // Tenta por TAB primeiro, depois fallback por múltiplos espaços
+      let cols = line.split('\t').map(s => s.trim()).filter(Boolean);
+      if (cols.length < 7) {
+        cols = line.trim().split(/\s+/);
+      }
+
+      if (cols.length < 7) return null;
+
+      // Linha de início de teste possui datetimes nas colunas 3+.
+      const maybeDate = parseDateTime(cols[2]);
+      if (maybeDate && cols.length >= 8 && /^(OK|NOK)$/i.test(cols[cols.length - 2] || '')) {
+        return {
+          type: 'testStart',
+          pieceId: cols[1],
+          datetime: maybeDate
+        };
+      }
+
+      // Formato esperado medida:
+      // [0]=station [1]=pieceId [2]=stepId [3]=variable [4]=lsl [5]=value [6]=usl ... [status] [enabled]
+      const pieceId = cols[1];
+      const variableName = cols[3] || '';
+      const lsl = toNumber(cols[4]);
+      const value = toNumber(cols[5]);
+      const usl = toNumber(cols[6]);
+      const statusCandidate = cols.find(c => /^(OK|NOK)$/i.test(c));
+      const status = statusCandidate ? statusCandidate.toUpperCase() : '';
+      const hasDisabled = cols.some(c => /^Disabled$/i.test(c));
+
+      return {
+        type: 'measurement',
+        pieceId,
+        variableName,
+        lsl,
+        value,
+        usl,
+        status,
+        disabled: hasDisabled
+      };
+    }
+
+    function parseTxtContent(text, fileMeta) {
+      const { partNumber } = extractHeaderInfo(text);
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      const records = [];
+      let currentDate = null;
+
+      for (const line of lines) {
+        const parsed = parseDataLine(line);
+        if (!parsed) continue;
+
+        if (parsed.type === 'testStart') {
+          currentDate = parsed.datetime || currentDate;
+          continue;
+        }
+
+        if (parsed.disabled) continue; // ignora Disabled
+        if (!parsed.variableName || Number.isNaN(parsed.value)) continue;
+        if (!parsed.status) continue;
+
+        records.push({
+          fileName: fileMeta.name,
+          filePath: fileMeta.relativePath || fileMeta.webkitRelativePath || fileMeta.name,
+          partNumber,
+          datetime: currentDate,
+          pieceId: parsed.pieceId,
+          variableName: parsed.variableName,
+          value: parsed.value,
+          lsl: parsed.lsl,
+          usl: parsed.usl,
+          status: parsed.status
+        });
+      }
+
+      return records;
+    }
+
+    async function readFileText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error(`Falha ao ler ${file.name}`));
+        reader.readAsText(file);
+      });
+    }
+
+    // processamento em lote para não travar UI
+    async function processFiles(files) {
+      const txtFiles = Array.from(files).filter(f => /\.txt$/i.test(f.name));
+      errorBox.textContent = '';
+
+      if (!txtFiles.length) {
+        setLoading('Nenhum .txt encontrado.', 0);
+        return;
+      }
+
+      state.allFiles += txtFiles.length;
+      fileCountEl.textContent = String(state.allFiles);
+
+      const batchSize = 25;
+      let processed = 0;
+
+      setLoading('Carregando...', 0);
+
+      for (let i = 0; i < txtFiles.length; i += batchSize) {
+        const batch = txtFiles.slice(i, i + batchSize);
+
+        await Promise.all(batch.map(async (file) => {
+          try {
+            const text = await readFileText(file);
+            const records = parseTxtContent(text, file);
+            state.allRecords.push(...records);
+          } catch (err) {
+            errorBox.textContent = `${errorBox.textContent}\n${err.message}`.trim();
+          }
+        }));
+
+        processed += batch.length;
+        const pct = Math.round((processed / txtFiles.length) * 100);
+        setLoading(`Carregando... ${processed}/${txtFiles.length}`, pct);
+        await new Promise(r => setTimeout(r, 0));
+      }
+
+      recordCountEl.textContent = String(state.allRecords.length);
+      setLoading('Processamento concluído.', 100);
+      rebuildVariableFilter();
+      applyFiltersAndRender();
+    }
+
+    // ========================
+    // Filtros e render
+    // ========================
+    function rebuildVariableFilter() {
+      const selected = variableFilter.value;
+      const vars = [...new Set(state.allRecords.map(r => r.variableName))].sort((a, b) => a.localeCompare(b));
+      variableFilter.innerHTML = '<option value="">Todas</option>' + vars.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+      if (vars.includes(selected)) variableFilter.value = selected;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function getFilteredRecords() {
+      const variable = variableFilter.value;
+      const status = statusFilter.value;
+      const fileText = fileNameFilter.value.trim().toLowerCase();
+      const piece = pieceFilter.value.trim().toLowerCase();
+      const start = startDate.value ? new Date(startDate.value) : null;
+      const end = endDate.value ? new Date(endDate.value) : null;
+
+      return state.allRecords
+        .filter(r => !variable || r.variableName === variable)
+        .filter(r => status === 'ALL' || r.status === status)
+        .filter(r => !fileText || `${r.fileName} ${r.filePath}`.toLowerCase().includes(fileText))
+        .filter(r => !piece || String(r.pieceId).toLowerCase().includes(piece))
+        .filter(r => !start || (r.datetime && r.datetime >= start))
+        .filter(r => !end || (r.datetime && r.datetime <= end))
+        .sort((a, b) => (a.datetime?.getTime() || 0) - (b.datetime?.getTime() || 0));
+    }
+
+    function renderChart(records) {
+      const ctx = document.getElementById('chart').getContext('2d');
+
+      const labels = records.map(r => formatDate(r.datetime) || '(sem data)');
+      const points = records.map(r => r.value);
+      const nokPoints = records.map(r => r.status === 'NOK' ? r.value : null);
+
+      const avgLsl = average(records.map(r => r.lsl).filter(Number.isFinite));
+      const avgUsl = average(records.map(r => r.usl).filter(Number.isFinite));
+      const lslLine = records.map(() => Number.isFinite(avgLsl) ? avgLsl : null);
+      const uslLine = records.map(() => Number.isFinite(avgUsl) ? avgUsl : null);
+
+      const data = {
+        labels,
+        datasets: [
+          {
+            label: 'Valor medido',
+            data: points,
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56,189,248,.25)',
+            pointRadius: 2,
+            tension: .15
+          },
+          {
+            label: 'NOK',
+            data: nokPoints,
+            borderColor: '#ef4444',
+            backgroundColor: '#ef4444',
+            showLine: false,
+            pointRadius: 4
+          },
+          {
+            label: 'LSL',
+            data: lslLine,
+            borderColor: '#f59e0b',
+            pointRadius: 0,
+            borderDash: [6, 4],
+            tension: 0
+          },
+          {
+            label: 'USL',
+            data: uslLine,
+            borderColor: '#22c55e',
+            pointRadius: 0,
+            borderDash: [6, 4],
+            tension: 0
+          }
+        ]
+      };
+
+      if (state.chart) state.chart.destroy();
+      state.chart = new Chart(ctx, {
+        type: 'line',
+        data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { color: '#cbd5e1', maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 16 },
+              grid: { color: 'rgba(148,163,184,.15)' }
+            },
+            y: {
+              ticks: { color: '#cbd5e1' },
+              grid: { color: 'rgba(148,163,184,.15)' }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: '#e2e8f0' } },
+            tooltip: {
+              callbacks: {
+                afterBody: (items) => {
+                  const i = items[0]?.dataIndex;
+                  if (i == null) return '';
+                  const r = records[i];
+                  return `Arquivo: ${r.fileName}\nPeça: ${r.pieceId}\nStatus: ${r.status}`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      document.getElementById('chartMeta').textContent = `Pontos exibidos: ${records.length}`;
+    }
+
+    function average(arr) {
+      if (!arr.length) return NaN;
+      return arr.reduce((sum, n) => sum + n, 0) / arr.length;
+    }
+
+    function renderTable(records) {
+      const maxRows = 1000; // protege performance visual
+      const slice = records.slice(0, maxRows);
+
+      tableBody.innerHTML = slice.map(r => {
+        const badgeClass = r.status === 'NOK' ? 'nok' : 'ok';
+        return `<tr>
+          <td>${escapeHtml(formatDate(r.datetime) || '-')}</td>
+          <td title="${escapeHtml(r.filePath)}">${escapeHtml(r.fileName)}</td>
+          <td>${escapeHtml(r.pieceId)}</td>
+          <td>${escapeHtml(r.variableName)}</td>
+          <td>${Number.isFinite(r.value) ? r.value : '-'}</td>
+          <td>${Number.isFinite(r.lsl) ? r.lsl : '-'}</td>
+          <td>${Number.isFinite(r.usl) ? r.usl : '-'}</td>
+          <td><span class="badge ${badgeClass}">${escapeHtml(r.status)}</span></td>
+        </tr>`;
+      }).join('');
+
+      if (records.length > maxRows) {
+        tableBody.insertAdjacentHTML('beforeend', `<tr><td colspan="8" class="muted">Mostrando ${maxRows} de ${records.length} linhas para manter desempenho.</td></tr>`);
+      }
+    }
+
+    function applyFiltersAndRender() {
+      const filtered = getFilteredRecords();
+      renderChart(filtered);
+      renderTable(filtered);
+    }
+
+    // ========================
+    // Eventos UI
+    // ========================
+    fileInput.addEventListener('change', async (e) => {
+      const files = e.target.files || [];
+      await processFiles(files);
+      fileInput.value = '';
+    });
+
+    ['dragenter', 'dragover'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('dragover');
+      });
+    });
+
+    dropZone.addEventListener('drop', async (e) => {
+      const items = e.dataTransfer?.items;
+      if (!items?.length) return;
+      const files = await filesFromDropItems(items);
+      await processFiles(files);
+    });
+
+    [
+      variableFilter,
+      statusFilter,
+      fileNameFilter,
+      pieceFilter,
+      startDate,
+      endDate
+    ].forEach(el => el.addEventListener('input', applyFiltersAndRender));
+
+    clearBtn.addEventListener('click', () => {
+      state.allRecords = [];
+      state.allFiles = 0;
+      fileCountEl.textContent = '0';
+      recordCountEl.textContent = '0';
+      variableFilter.innerHTML = '<option value="">Todas</option>';
+      tableBody.innerHTML = '';
+      setLoading('Memória limpa.', 0);
+      errorBox.textContent = '';
+      if (state.chart) {
+        state.chart.destroy();
+        state.chart = null;
+      }
+      document.getElementById('chartMeta').textContent = 'Sem dados para exibir.';
+    });
+
+    // Inicialização de gráfico vazio
+    renderChart([]);
+  </script>
+</body>
+</html>
