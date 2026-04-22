@@ -2,59 +2,90 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>Lognator - Dashboard de Logs</title>
+<title>LOGNATOR 2.0 - Dashboard de Logs</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
+  :root {
+    --c-orange: #ff4a1c;
+    --c-orange-light: #ff6b3d;
+    --c-pink: #e91e63;
+    --c-purple: #7b1fa2;
+    --c-purple-deep: #4a148c;
+    --grad-brand: linear-gradient(135deg, #ff4a1c 0%, #ff2e63 45%, #7b1fa2 100%);
+    --grad-brand-soft: linear-gradient(135deg, rgba(255,74,28,0.08) 0%, rgba(123,31,162,0.08) 100%);
+    --c-text: #1a1324;
+    --c-muted: #6b6478;
+    --c-bg: #fbf7f5;
+    --c-card: #ffffff;
+    --c-border: #ecdfe5;
+    --shadow-sm: 0 1px 2px rgba(74,20,140,.06);
+    --shadow-md: 0 4px 14px rgba(74,20,140,.08);
+  }
   * { box-sizing: border-box; }
-  body { font-family: Segoe UI, Arial, sans-serif; margin: 0; padding: 0; background: #f4f6f9; color: #222; }
-  header { background: #1e3a5f; color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
-  header h1 { margin: 0; font-size: 20px; }
-  header .stats { font-size: 13px; opacity: .9; }
-  .container { padding: 16px; }
-  .dropzone { border: 2px dashed #1e3a5f; background: #fff; border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: background .2s; margin-bottom: 14px; }
-  .dropzone.hover { background: #e0ecf8; }
+  body { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif; margin: 0; padding: 0; background: var(--c-bg); color: var(--c-text); }
+  header { background: var(--grad-brand); color: #fff; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(74,20,140,.25); position: relative; overflow: hidden; }
+  header::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 80% -20%, rgba(255,255,255,.18), transparent 60%); pointer-events: none; }
+  header h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; position: relative; z-index: 1; }
+  header h1 .brand { font-weight: 800; letter-spacing: 2px; }
+  header h1 .subtitle { font-weight: 400; opacity: .92; letter-spacing: .5px; text-transform: none; font-size: 15px; margin-left: 6px; }
+  header .stats { font-size: 13px; opacity: .95; position: relative; z-index: 1; background: rgba(255,255,255,.15); padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(4px); }
+  .container { padding: 18px; max-width: 1800px; margin: 0 auto; }
+  .dropzone { border: 2px dashed var(--c-orange); background: var(--c-card); border-radius: 12px; padding: 26px; text-align: center; cursor: pointer; transition: all .25s ease; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+  .dropzone:hover, .dropzone.hover { background: var(--grad-brand-soft); border-color: var(--c-purple); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  .dropzone p { margin: 0 0 10px; color: var(--c-text); }
   .dropzone input { display: none; }
-  .dropzone button { background: #1e3a5f; color: #fff; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin: 4px; }
-  .dropzone button:hover { background: #2a527f; }
-  .progress-wrap { background: #ddd; height: 10px; border-radius: 5px; overflow: hidden; margin: 8px 0; display: none; }
-  .progress-bar { background: #28a745; height: 100%; width: 0%; transition: width .2s; }
-  .filters { background: #fff; padding: 12px; border-radius: 8px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
-  .filters label { display: flex; flex-direction: column; font-size: 12px; color: #555; }
-  .filters input, .filters select { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; margin-top: 2px; }
-  .chart-wrap { background: #fff; padding: 12px; border-radius: 8px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.05); height: 420px; }
-  .table-wrap { background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.05); overflow-x: auto; max-height: 400px; overflow-y: auto; }
+  .dropzone button { background: var(--grad-brand); color: #fff; border: none; padding: 9px 18px; border-radius: 24px; cursor: pointer; margin: 4px; font-weight: 600; font-size: 13px; letter-spacing: .3px; transition: transform .15s ease, box-shadow .15s ease; box-shadow: 0 2px 8px rgba(255,74,28,.3); }
+  .dropzone button:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(123,31,162,.35); }
+  .progress-wrap { background: #ecdfe5; height: 8px; border-radius: 5px; overflow: hidden; margin: 10px 0 0; display: none; }
+  .progress-bar { background: var(--grad-brand); height: 100%; width: 0%; transition: width .2s; }
+  .filters { background: var(--c-card); padding: 14px; border-radius: 12px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; box-shadow: var(--shadow-sm); border: 1px solid var(--c-border); }
+  .filters label { display: flex; flex-direction: column; font-size: 12px; color: var(--c-muted); font-weight: 500; }
+  .filters input, .filters select { padding: 7px 10px; border: 1px solid var(--c-border); border-radius: 6px; font-size: 13px; margin-top: 4px; background: #fff; color: var(--c-text); transition: border-color .15s, box-shadow .15s; }
+  .filters input:focus, .filters select:focus { outline: none; border-color: var(--c-orange); box-shadow: 0 0 0 3px rgba(255,74,28,.15); }
+  .chart-wrap { background: var(--c-card); padding: 14px; border-radius: 12px; margin-bottom: 16px; box-shadow: var(--shadow-sm); height: 420px; border: 1px solid var(--c-border); position: relative; }
+  .chart-wrap::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--grad-brand); border-radius: 12px 12px 0 0; }
+  .table-wrap { background: var(--c-card); padding: 14px; border-radius: 12px; box-shadow: var(--shadow-sm); overflow-x: auto; max-height: 400px; overflow-y: auto; border: 1px solid var(--c-border); }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; white-space: nowrap; }
-  th { background: #f0f2f5; position: sticky; top: 0; }
-  tr.nok td { background: #ffe5e5; }
-  .status-ok { color: #28a745; font-weight: bold; }
-  .status-nok { color: #dc3545; font-weight: bold; }
-  #loadingMsg { display: none; background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; }
-  #errorMsg { display: none; background: #f8d7da; color: #721c24; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; }
-  .summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-  .summary-card { background: #fff; padding: 8px 14px; border-radius: 6px; font-size: 13px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
-  .summary-card b { font-size: 16px; color: #1e3a5f; }
-
-  .dist-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; margin-bottom: 14px; }
-  .dist-panel { background: #fff; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.05); padding: 12px; }
-  .dist-panel h3 { margin: 0 0 10px; color: #1e3a5f; font-size: 16px; }
-  .dist-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-bottom: 10px; }
-  .dist-filters label { display: flex; flex-direction: column; font-size: 12px; color: #555; }
-  .dist-filters input, .dist-filters select { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; margin-top: 2px; }
-  .dist-filters .check-row { flex-direction: row; align-items: center; gap: 6px; margin-top: 18px; }
-  .dist-chart-box { height: 300px; }
-  .metrics-row { display: grid; grid-template-columns: repeat(4, minmax(64px, 1fr)); gap: 8px; margin-top: 10px; }
-  .metrics-row label { font-size: 11px; color: #666; display: flex; flex-direction: column; }
-  .metrics-row input { margin-top: 2px; font-size: 12px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; width: 100%; }
-
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--c-border); text-align: left; white-space: nowrap; }
+  th { background: linear-gradient(180deg, #f9f1f3 0%, #f3e6eb 100%); position: sticky; top: 0; color: var(--c-purple-deep); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+  tr:hover td { background: rgba(255,74,28,.04); }
+  tr.nok td { background: #ffe8ea; }
+  tr.nok:hover td { background: #ffdbe0; }
+  .status-ok { color: #1e9e52; font-weight: 700; }
+  .status-nok { color: #d81b3c; font-weight: 700; }
+  #loadingMsg { display: none; background: #fff4e6; color: #a0520a; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--c-orange); }
+  #errorMsg { display: none; background: #ffe5ea; color: #a01a30; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #d81b3c; }
+  .summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .summary-card { background: var(--c-card); padding: 10px 16px; border-radius: 10px; font-size: 13px; box-shadow: var(--shadow-sm); border: 1px solid var(--c-border); color: var(--c-muted); min-width: 110px; transition: transform .15s ease, box-shadow .15s ease; }
+  .summary-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .summary-card b { font-size: 18px; background: var(--grad-brand); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; display: block; margin-top: 2px; }
+  .hist-section { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 900px) { .hist-section { grid-template-columns: 1fr; } }
+  .hist-panel { background: var(--c-card); padding: 14px; border-radius: 12px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--c-border); position: relative; overflow: hidden; }
+  .hist-panel::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--grad-brand); }
+  .hist-panel h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--c-purple-deep); text-transform: uppercase; letter-spacing: .8px; padding-top: 4px; }
+  .hist-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; padding: 10px; background: var(--grad-brand-soft); border-radius: 8px; }
+  .hist-filters label { display: flex; flex-direction: column; font-size: 11px; color: var(--c-muted); font-weight: 500; }
+  .hist-filters input, .hist-filters select { padding: 5px 8px; border: 1px solid var(--c-border); border-radius: 5px; font-size: 12px; margin-top: 3px; background: #fff; color: var(--c-text); transition: border-color .15s, box-shadow .15s; }
+  .hist-filters input:focus, .hist-filters select:focus { outline: none; border-color: var(--c-orange); box-shadow: 0 0 0 2px rgba(255,74,28,.15); }
+  .hist-filters label.inline { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; color: var(--c-text); font-weight: 600; }
+  .hist-filters label.inline input[type=checkbox] { margin: 0; accent-color: var(--c-orange); }
+  .hist-chart-wrap { height: 300px; }
+  .capability-box { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-size: 11px; }
+  .capability-box span { background: var(--grad-brand-soft); padding: 8px 6px; border-radius: 8px; text-align: center; color: var(--c-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; border: 1px solid var(--c-border); }
+  .capability-box b { display: block; font-size: 16px; background: var(--grad-brand); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-top: 3px; font-weight: 800; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #f4eef1; }
+  ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--c-orange), var(--c-purple)); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, var(--c-orange-light), var(--c-purple-deep)); }
 </style>
 </head>
 <body>
 <header>
-  <h1>Lognator - Dashboard de Análise de Logs</h1>
+  <h1><span class="brand">LOGNATOR 2.0</span><span class="subtitle">— Dashboard de Análise de Logs</span></h1>
   <div class="stats" id="headerStats">Nenhum arquivo carregado</div>
 </header>
-
+ 
 <div class="container">
   <div class="dropzone" id="dropzone">
     <p><b>Arraste uma pasta ou arquivos .txt aqui</b> ou selecione abaixo:</p>
@@ -64,12 +95,12 @@
     <input type="file" id="folderInput" multiple webkitdirectory directory />
     <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
   </div>
-
+ 
   <div id="loadingMsg">Carregando arquivos...</div>
   <div id="errorMsg"></div>
-
+ 
   <div class="summary" id="summary"></div>
-
+ 
   <div class="filters">
     <label>Variável
       <select id="filterVariable"><option value="">-- selecione --</option></select>
@@ -100,116 +131,13 @@
       <input type="number" step="any" id="filterValueMax" placeholder="ex: 9999" />
     </label>
   </div>
-
+ 
   <div class="chart-wrap">
     <canvas id="chart"></canvas>
   </div>
-
-
-  <div class="dist-grid">
-    <div class="dist-panel">
-      <h3>Distribuição A</h3>
-      <div class="dist-filters">
-        <label>Variável
-          <select id="distAFilterVariable"><option value="">-- selecione --</option></select>
-        </label>
-        <label>Status
-          <select id="distAFilterStatus">
-            <option value="ALL">Todos</option>
-            <option value="OK">OK</option>
-            <option value="NOK">NOK</option>
-          </select>
-        </label>
-        <label>Nome do arquivo
-          <input type="text" id="distAFilterFile" placeholder="contém..." />
-        </label>
-        <label>Peça (ID)
-          <input type="text" id="distAFilterPiece" placeholder="ID peça..." />
-        </label>
-        <label>Data inicial
-          <input type="datetime-local" id="distAFilterDateStart" />
-        </label>
-        <label>Data final
-          <input type="datetime-local" id="distAFilterDateEnd" />
-        </label>
-        <label>Valor mínimo
-          <input type="number" step="any" id="distAFilterValueMin" />
-        </label>
-        <label>Valor máximo
-          <input type="number" step="any" id="distAFilterValueMax" />
-        </label>
-        <label class="check-row"><input type="checkbox" id="distAUseCustomLimits" /> Usar LSL/USL customizados</label>
-        <label>LSL customizado
-          <input type="number" step="any" id="distACustomLsl" disabled />
-        </label>
-        <label>USL customizado
-          <input type="number" step="any" id="distACustomUsl" disabled />
-        </label>
-        <label>Nº de subgrupos
-          <input type="number" min="1" step="1" id="distASubgroupSize" value="1" />
-        </label>
-      </div>
-      <div class="dist-chart-box"><canvas id="distChartA"></canvas></div>
-      <div class="metrics-row">
-        <label>CP<input id="distACp" readonly /></label>
-        <label>CPK<input id="distACpk" readonly /></label>
-        <label>PP<input id="distAPp" readonly /></label>
-        <label>PPK<input id="distAPpk" readonly /></label>
-      </div>
-    </div>
-
-    <div class="dist-panel">
-      <h3>Distribuição B</h3>
-      <div class="dist-filters">
-        <label>Variável
-          <select id="distBFilterVariable"><option value="">-- selecione --</option></select>
-        </label>
-        <label>Status
-          <select id="distBFilterStatus">
-            <option value="ALL">Todos</option>
-            <option value="OK">OK</option>
-            <option value="NOK">NOK</option>
-          </select>
-        </label>
-        <label>Nome do arquivo
-          <input type="text" id="distBFilterFile" placeholder="contém..." />
-        </label>
-        <label>Peça (ID)
-          <input type="text" id="distBFilterPiece" placeholder="ID peça..." />
-        </label>
-        <label>Data inicial
-          <input type="datetime-local" id="distBFilterDateStart" />
-        </label>
-        <label>Data final
-          <input type="datetime-local" id="distBFilterDateEnd" />
-        </label>
-        <label>Valor mínimo
-          <input type="number" step="any" id="distBFilterValueMin" />
-        </label>
-        <label>Valor máximo
-          <input type="number" step="any" id="distBFilterValueMax" />
-        </label>
-        <label class="check-row"><input type="checkbox" id="distBUseCustomLimits" /> Usar LSL/USL customizados</label>
-        <label>LSL customizado
-          <input type="number" step="any" id="distBCustomLsl" disabled />
-        </label>
-        <label>USL customizado
-          <input type="number" step="any" id="distBCustomUsl" disabled />
-        </label>
-        <label>Nº de subgrupos
-          <input type="number" min="1" step="1" id="distBSubgroupSize" value="1" />
-        </label>
-      </div>
-      <div class="dist-chart-box"><canvas id="distChartB"></canvas></div>
-      <div class="metrics-row">
-        <label>CP<input id="distBCp" readonly /></label>
-        <label>CPK<input id="distBCpk" readonly /></label>
-        <label>PP<input id="distBPp" readonly /></label>
-        <label>PPK<input id="distBPpk" readonly /></label>
-      </div>
-    </div>
-  </div>
-
+ 
+  <div class="hist-section" id="histSection"></div>
+ 
   <div class="table-wrap">
     <table id="dataTable">
       <thead>
@@ -229,19 +157,18 @@
     </table>
   </div>
 </div>
-
+ 
 <script>
 /* =========================================================
    Lognator - Parser + Dashboard
    ========================================================= */
-
+ 
 const ALL_DATA = [];
 let chartInstance = null;
-const distCharts = { A: null, B: null };
 let filesLoaded = 0;
-
+ 
 /* ---------- Helpers ---------- */
-
+ 
 function parseDateTime(str) {
   if (!str) return null;
   const s = String(str).trim();
@@ -252,11 +179,11 @@ function parseDateTime(str) {
   const date = new Date(+y, +mo - 1, +d, +h, +mi, +se, ms ? +ms.substring(0, 3) : 0);
   return isNaN(date.getTime()) ? null : date;
 }
-
+ 
 function looksLikeDate(str) {
   return /^\d{4}[\/\-]\d{2}[\/\-]\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(String(str || "").trim());
 }
-
+ 
 function safeFloat(str) {
   if (str === undefined || str === null) return null;
   const s = String(str).trim();
@@ -264,20 +191,20 @@ function safeFloat(str) {
   const v = parseFloat(s);
   return isNaN(v) ? null : v;
 }
-
+ 
 /* ---------- Parser de um arquivo ---------- */
-
+ 
 function parseFileContent(text, fileName, folderPath) {
   const lines = text.split(/\r?\n/);
   const result = [];
   let partNumber = "";
   let plcVersion = "";
   let lastDateTime = null;
-
+ 
   for (let rawLine of lines) {
     if (!rawLine || !rawLine.trim()) continue;
     const cols = rawLine.split("\t");
-
+ 
     if (rawLine.includes("PART_NUMBER=") || rawLine.includes("PLC_VERSION=")) {
       for (const c of cols) {
         const eqIdx = c.indexOf("=");
@@ -290,31 +217,31 @@ function parseFileContent(text, fileName, folderPath) {
       }
       continue;
     }
-
+ 
     if (cols.length >= 3 && looksLikeDate(cols[2])) {
       const dt = parseDateTime(cols[2]);
       if (dt) lastDateTime = dt;
       continue;
     }
-
+ 
     if (cols.length < 7) continue;
     if (cols.some(c => c.trim() === "Disabled")) continue;
-
+ 
     const pieceId = (cols[1] || "").trim();
     const variableName = (cols[3] || "").trim();
     const lsl = safeFloat(cols[4]);
     const value = safeFloat(cols[5]);
     const usl = safeFloat(cols[6]);
-
+ 
     let status = "";
     for (let i = 7; i < cols.length; i++) {
       const v = (cols[i] || "").trim().toUpperCase();
       if (v === "OK" || v === "NOK") { status = v; break; }
     }
-
+ 
     if (!variableName || value === null) continue;
     if (!status) continue;
-
+ 
     result.push({
       fileName, folderPath: folderPath || "", partNumber, plcVersion,
       datetime: lastDateTime, pieceId, variableName, value, lsl, usl, status
@@ -322,9 +249,9 @@ function parseFileContent(text, fileName, folderPath) {
   }
   return result;
 }
-
+ 
 /* ---------- Leitura assíncrona ---------- */
-
+ 
 function readFileAsText(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -333,18 +260,18 @@ function readFileAsText(file) {
     reader.readAsText(file);
   });
 }
-
+ 
 async function processFiles(fileList) {
   const files = Array.from(fileList).filter(f => /\.txt$/i.test(f.name));
   if (files.length === 0) {
     showError("Nenhum arquivo .txt encontrado.");
     return;
   }
-
+ 
   showLoading(true);
   document.getElementById("progressWrap").style.display = "block";
   const progressBar = document.getElementById("progressBar");
-
+ 
   let processed = 0;
   const BATCH = 20;
   for (let i = 0; i < files.length; i += BATCH) {
@@ -364,7 +291,7 @@ async function processFiles(fileList) {
     progressBar.style.width = Math.round((processed / files.length) * 100) + "%";
     await new Promise(r => setTimeout(r, 0));
   }
-
+ 
   filesLoaded += files.length;
   showLoading(false);
   document.getElementById("progressWrap").style.display = "none";
@@ -372,9 +299,9 @@ async function processFiles(fileList) {
   updateHeaderStats();
   refreshUIFromData();
 }
-
+ 
 /* ---------- Drag-and-drop recursivo ---------- */
-
+ 
 async function getFilesFromDataTransfer(dt) {
   const items = dt.items;
   const files = [];
@@ -392,7 +319,7 @@ async function getFilesFromDataTransfer(dt) {
   }
   return files;
 }
-
+ 
 function traverseEntry(entry, path, files) {
   return new Promise((resolve) => {
     if (entry.isFile) {
@@ -421,9 +348,9 @@ function traverseEntry(entry, path, files) {
     }
   });
 }
-
+ 
 /* ---------- UI ---------- */
-
+ 
 function showLoading(on) { document.getElementById("loadingMsg").style.display = on ? "block" : "none"; }
 function showError(msg) {
   const el = document.getElementById("errorMsg");
@@ -434,13 +361,12 @@ function updateHeaderStats() {
   document.getElementById("headerStats").textContent = `${filesLoaded} arquivos • ${ALL_DATA.length} registros`;
 }
 function populateVariableSelect() {
+  const sel = document.getElementById("filterVariable");
+  const current = sel.value;
   const vars = [...new Set(ALL_DATA.map(r => r.variableName))].sort();
-  ["filterVariable", "distAFilterVariable", "distBFilterVariable"].forEach((id) => {
-    const sel = document.getElementById(id);
-    const current = sel.value;
-    sel.innerHTML = '<option value="">-- selecione --</option>' + vars.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
-    if (current && vars.includes(current)) sel.value = current;
-  });
+  sel.innerHTML = '<option value="">-- selecione --</option>' +
+    vars.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+  if (current && vars.includes(current)) sel.value = current;
 }
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -463,9 +389,9 @@ function updateSummary(data) {
     <div class="summary-card">Máx: <b>${max.toFixed(3)}</b></div>
   `;
 }
-
+ 
 /* ---------- Filtros ---------- */
-
+ 
 function getFilteredData() {
   const v = document.getElementById("filterVariable").value;
   const st = document.getElementById("filterStatus").value;
@@ -479,7 +405,7 @@ function getFilteredData() {
   const vMaxRaw = document.getElementById("filterValueMax").value;
   const vMin = vMinRaw === "" ? null : parseFloat(vMinRaw);
   const vMax = vMaxRaw === "" ? null : parseFloat(vMaxRaw);
-
+ 
   return ALL_DATA.filter(r => {
     if (v && r.variableName !== v) return false;
     if (st !== "ALL" && r.status !== st) return false;
@@ -498,49 +424,49 @@ function getFilteredData() {
     return ta - tb;
   });
 }
-
+ 
 /* ---------- Gráfico ---------- */
-
+ 
 function renderChart(data) {
   const ctx = document.getElementById("chart").getContext("2d");
   if (chartInstance) chartInstance.destroy();
-
+ 
   if (!data.length) { chartInstance = null; return; }
-
+ 
   const points = data
     .filter(r => r.datetime && r.value !== null)
     .map(r => ({ x: r.datetime.getTime(), y: r.value, raw: r }))
     .sort((a, b) => a.x - b.x);
-
+ 
   if (!points.length) { chartInstance = null; return; }
-
+ 
   const colors = points.map(p => {
     const { value, lsl, usl, status } = p.raw;
     const hasLsl = Number.isFinite(lsl);
     const hasUsl = Number.isFinite(usl);
     const isOutOfLimits = (hasLsl && value < lsl) || (hasUsl && value > usl);
-    if (isOutOfLimits || status === "NOK") return "#dc3545";
-    return "#28a745";
+    if (isOutOfLimits || status === "NOK") return "#d81b3c";
+    return "#1e9e52";
   });
-
+ 
   let lsl = null, usl = null;
   for (const r of data) {
     if (lsl === null && r.lsl !== null) lsl = r.lsl;
     if (usl === null && r.usl !== null) usl = r.usl;
     if (lsl !== null && usl !== null) break;
   }
-
+ 
   const xMin = points[0].x;
   const xMax = points[points.length - 1].x;
-
-  const pointRadius = 1;
-  const pointHoverRadius = 3;
-
+ 
+  const pointRadius = 2;
+  const pointHoverRadius = 6;
+ 
   const datasets = [{
     label: "Valor medido",
     data: points.map(p => ({ x: p.x, y: p.y })),
-    borderColor: "#1e3a5f",
-    backgroundColor: "rgba(30,58,95,0.1)",
+    borderColor: "#7b1fa2",
+    backgroundColor: "rgba(123,31,162,0.1)",
     pointBackgroundColor: colors,
     pointBorderColor: colors,
     pointRadius,
@@ -551,12 +477,12 @@ function renderChart(data) {
     spanGaps: true,
     showLine: false
   }];
-
+ 
   if (lsl !== null) {
     datasets.push({
       label: "LSL",
       data: [{ x: xMin, y: lsl }, { x: xMax, y: lsl }],
-      borderColor: "#ff9800",
+      borderColor: "#ff4a1c",
       borderDash: [6, 4],
       pointRadius: 0,
       fill: false,
@@ -568,7 +494,7 @@ function renderChart(data) {
     datasets.push({
       label: "USL",
       data: [{ x: xMin, y: usl }, { x: xMax, y: usl }],
-      borderColor: "#f44336",
+      borderColor: "#d81b3c",
       borderDash: [6, 4],
       pointRadius: 0,
       fill: false,
@@ -576,7 +502,7 @@ function renderChart(data) {
       showLine: true
     });
   }
-
+ 
   chartInstance = new Chart(ctx, {
     type: "line",
     data: { datasets },
@@ -626,183 +552,14 @@ function renderChart(data) {
     }
   });
 }
-
+ 
 function formatDateShort(d) {
   const pad = n => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
-
-function getFilteredDataFromPrefix(prefix) {
-  const v = document.getElementById(`${prefix}FilterVariable`).value;
-  const st = document.getElementById(`${prefix}FilterStatus`).value;
-  const fTxt = document.getElementById(`${prefix}FilterFile`).value.toLowerCase().trim();
-  const pc = document.getElementById(`${prefix}FilterPiece`).value.trim();
-  const dStart = document.getElementById(`${prefix}FilterDateStart`).value;
-  const dEnd = document.getElementById(`${prefix}FilterDateEnd`).value;
-  const dStartD = dStart ? new Date(dStart) : null;
-  const dEndD = dEnd ? new Date(dEnd) : null;
-  const vMinRaw = document.getElementById(`${prefix}FilterValueMin`).value;
-  const vMaxRaw = document.getElementById(`${prefix}FilterValueMax`).value;
-  const vMin = vMinRaw === "" ? null : parseFloat(vMinRaw);
-  const vMax = vMaxRaw === "" ? null : parseFloat(vMaxRaw);
-
-  return ALL_DATA.filter(r => {
-    if (v && r.variableName !== v) return false;
-    if (st !== "ALL" && r.status !== st) return false;
-    if (fTxt && !r.fileName.toLowerCase().includes(fTxt) && !(r.folderPath || "").toLowerCase().includes(fTxt)) return false;
-    if (pc && String(r.pieceId) !== pc) return false;
-    if (dStartD && (!r.datetime || r.datetime < dStartD)) return false;
-    if (dEndD && (!r.datetime || r.datetime > dEndD)) return false;
-    if (vMin !== null && !isNaN(vMin) && (r.value === null || r.value < vMin)) return false;
-    if (vMax !== null && !isNaN(vMax) && (r.value === null || r.value > vMax)) return false;
-    return r.value !== null;
-  }).sort((a, b) => (a.datetime?.getTime() || 0) - (b.datetime?.getTime() || 0));
-}
-
-function stdDevSample(values) {
-  if (!values || values.length < 2) return null;
-  const mean = values.reduce((a,b) => a + b, 0) / values.length;
-  const variance = values.reduce((acc, v) => acc + ((v - mean) ** 2), 0) / (values.length - 1);
-  return Math.sqrt(variance);
-}
-
-function estimateSigmaWithin(values, subgroupSize) {
-  if (values.length < 2) return null;
-  const d2Table = {2:1.128,3:1.693,4:2.059,5:2.326,6:2.534,7:2.704,8:2.847,9:2.97,10:3.078,11:3.173,12:3.258,13:3.336,14:3.407,15:3.472,16:3.532,17:3.588,18:3.64,19:3.689,20:3.735,21:3.778,22:3.819,23:3.858,24:3.895,25:3.931};
-
-  if (subgroupSize <= 1) {
-    const movingRanges = [];
-    for (let i = 1; i < values.length; i++) movingRanges.push(Math.abs(values[i] - values[i - 1]));
-    if (!movingRanges.length) return null;
-    const mrBar = movingRanges.reduce((a,b) => a + b, 0) / movingRanges.length;
-    return mrBar / d2Table[2];
-  }
-
-  const d2 = d2Table[subgroupSize] || d2Table[25];
-  const ranges = [];
-  for (let i = 0; i < values.length; i += subgroupSize) {
-    const grp = values.slice(i, i + subgroupSize);
-    if (grp.length < 2) continue;
-    ranges.push(Math.max(...grp) - Math.min(...grp));
-  }
-  if (!ranges.length) return null;
-  const rBar = ranges.reduce((a,b) => a + b, 0) / ranges.length;
-  return rBar / d2;
-}
-
-function setMetricValues(prefix, metrics) {
-  const fmt = (v) => Number.isFinite(v) ? v.toFixed(4) : "-";
-  document.getElementById(`${prefix}Cp`).value = fmt(metrics.cp);
-  document.getElementById(`${prefix}Cpk`).value = fmt(metrics.cpk);
-  document.getElementById(`${prefix}Pp`).value = fmt(metrics.pp);
-  document.getElementById(`${prefix}Ppk`).value = fmt(metrics.ppk);
-}
-
-function renderDistributionChart(key, prefix) {
-  const data = getFilteredDataFromPrefix(prefix);
-  const values = data.map(r => r.value).filter(v => Number.isFinite(v));
-  const canvas = document.getElementById(`distChart${key}`);
-  const ctx = canvas.getContext("2d");
-  if (distCharts[key]) distCharts[key].destroy();
-
-  if (values.length < 2) { setMetricValues(prefix, { cp: null, cpk: null, pp: null, ppk: null }); return; }
-
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const bins = Math.max(5, Math.min(30, Math.round(Math.sqrt(values.length))));
-  const width = max === min ? 1 : (max - min) / bins;
-  const counts = new Array(bins).fill(0);
-
-  for (const v of values) {
-    let idx = Math.floor((v - min) / width);
-    if (!Number.isFinite(idx)) idx = 0;
-    idx = Math.max(0, Math.min(bins - 1, idx));
-    counts[idx] += 1;
-  }
-
-  const centers = counts.map((_, i) => min + (i + 0.5) * width);
-  const std = stdDevSample(values);
-  const mean = values.reduce((a,b) => a + b, 0) / values.length;
-  const normalCurve = centers.map(x => {
-    if (!std || std === 0) return 0;
-    const pdf = (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * (((x - mean) / std) ** 2));
-    return pdf * values.length * width;
-  });
-
-  let lsl = data.find(r => Number.isFinite(r.lsl))?.lsl ?? null;
-  let usl = data.find(r => Number.isFinite(r.usl))?.usl ?? null;
-
-  const useCustom = document.getElementById(`${prefix}UseCustomLimits`).checked;
-  if (useCustom) {
-    const customLsl = parseFloat(document.getElementById(`${prefix}CustomLsl`).value);
-    const customUsl = parseFloat(document.getElementById(`${prefix}CustomUsl`).value);
-    if (!isNaN(customLsl)) lsl = customLsl;
-    if (!isNaN(customUsl)) usl = customUsl;
-  }
-
-  const subgroupSize = Math.max(1, parseInt(document.getElementById(`${prefix}SubgroupSize`).value || "1", 10));
-  const sigmaWithin = estimateSigmaWithin(values, subgroupSize);
-
-  let cp = null, cpk = null, pp = null, ppk = null;
-  if (Number.isFinite(lsl) && Number.isFinite(usl) && sigmaWithin && sigmaWithin > 0 && std && std > 0) {
-    cp = (usl - lsl) / (6 * sigmaWithin);
-    cpk = Math.min((usl - mean) / (3 * sigmaWithin), (mean - lsl) / (3 * sigmaWithin));
-    pp = (usl - lsl) / (6 * std);
-    ppk = Math.min((usl - mean) / (3 * std), (mean - lsl) / (3 * std));
-  }
-  setMetricValues(prefix, { cp, cpk, pp, ppk });
-
-  const yTop = Math.max(...counts, ...normalCurve) * 1.1;
-  const datasets = [
-    {
-      type: "bar",
-      label: "Histograma",
-      data: centers.map((x, i) => ({ x, y: counts[i] })),
-      backgroundColor: "rgba(30,58,95,0.35)",
-      borderColor: "rgba(30,58,95,0.9)",
-      borderWidth: 1
-    },
-    {
-      type: "line",
-      label: "Curva normal",
-      data: centers.map((x, i) => ({ x, y: normalCurve[i] })),
-      borderColor: "#dc3545",
-      pointRadius: 0,
-      borderWidth: 2,
-      tension: 0.3
-    }
-  ];
-
-  if (Number.isFinite(lsl)) {
-    datasets.push({ type: "line", label: "LSL", data: [{x: lsl, y: 0}, {x: lsl, y: yTop}], borderColor: "#ff9800", borderDash: [6,4], pointRadius: 0, borderWidth: 1.5 });
-  }
-  if (Number.isFinite(usl)) {
-    datasets.push({ type: "line", label: "USL", data: [{x: usl, y: 0}, {x: usl, y: yTop}], borderColor: "#f44336", borderDash: [6,4], pointRadius: 0, borderWidth: 1.5 });
-  }
-
-  distCharts[key] = new Chart(ctx, {
-    type: "bar",
-    data: { datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      parsing: false,
-      scales: {
-        x: { type: "linear", title: { display: true, text: "Valor" } },
-        y: { beginAtZero: true, title: { display: true, text: "Frequência" } }
-      },
-      plugins: { legend: { position: "top" } }
-    }
-  });
-}
-
-function renderDistributionCharts() {
-  renderDistributionChart("A", "distA");
-  renderDistributionChart("B", "distB");
-}
-
+ 
 /* ---------- Tabela ---------- */
-
+ 
 function renderTable(data) {
   const tbody = document.querySelector("#dataTable tbody");
   const LIMIT = 1000;
@@ -824,27 +581,26 @@ function renderTable(data) {
     `<tr><td colspan="9" style="text-align:center;color:#888">... exibindo ${LIMIT} de ${data.length} linhas ...</td></tr>` : "";
   tbody.innerHTML = rows + extra;
 }
-
+ 
 /* ---------- Refresh / eventos ---------- */
-
+ 
 function refreshUIFromData() {
   populateVariableSelect();
   const sel = document.getElementById("filterVariable");
   if (!sel.value && sel.options.length > 1) sel.value = sel.options[1].value;
   applyFilters();
 }
-
+ 
 function applyFilters() {
   const data = getFilteredData();
   updateSummary(data);
   renderChart(data);
-  renderDistributionCharts();
   renderTable(data);
 }
-
+ 
 document.getElementById("fileInput").addEventListener("change", e => processFiles(e.target.files));
 document.getElementById("folderInput").addEventListener("change", e => processFiles(e.target.files));
-
+ 
 const dz = document.getElementById("dropzone");
 ["dragenter", "dragover"].forEach(ev => dz.addEventListener(ev, e => {
   e.preventDefault(); e.stopPropagation(); dz.classList.add("hover");
@@ -856,24 +612,392 @@ dz.addEventListener("drop", async e => {
   const files = await getFilesFromDataTransfer(e.dataTransfer);
   if (files.length) processFiles(files);
 });
-
-[
-  "filterVariable", "filterStatus", "filterFile", "filterPiece", "filterDateStart", "filterDateEnd", "filterValueMin", "filterValueMax",
-  "distAFilterVariable", "distAFilterStatus", "distAFilterFile", "distAFilterPiece", "distAFilterDateStart", "distAFilterDateEnd", "distAFilterValueMin", "distAFilterValueMax", "distASubgroupSize", "distACustomLsl", "distACustomUsl", "distAUseCustomLimits",
-  "distBFilterVariable", "distBFilterStatus", "distBFilterFile", "distBFilterPiece", "distBFilterDateStart", "distBFilterDateEnd", "distBFilterValueMin", "distBFilterValueMax", "distBSubgroupSize", "distBCustomLsl", "distBCustomUsl", "distBUseCustomLimits"
-].forEach(id => {
-  const el = document.getElementById(id);
-  el.addEventListener("change", () => {
-    if (id.endsWith("UseCustomLimits")) {
-      const prefix = id.startsWith("distA") ? "distA" : "distB";
-      const enabled = el.checked;
-      document.getElementById(`${prefix}CustomLsl`).disabled = !enabled;
-      document.getElementById(`${prefix}CustomUsl`).disabled = !enabled;
-    }
-    applyFilters();
+ 
+["filterVariable", "filterStatus", "filterFile", "filterPiece",
+ "filterDateStart", "filterDateEnd", "filterValueMin", "filterValueMax"]
+  .forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener("change", applyFilters);
+    el.addEventListener("input", applyFilters);
   });
-  el.addEventListener("input", applyFilters);
-});
+ 
+/* =========================================================
+   Histogramas + Curva Normal + Capabilidade (CP/CPK/PP/PPK)
+   ========================================================= */
+ 
+const HIST_PREFIXES = ["hist1", "hist2"];
+const histInstances = { hist1: null, hist2: null };
+ 
+function buildHistPanel(prefix, title) {
+  return `
+    <div class="hist-panel">
+      <h3>${title}</h3>
+      <div class="hist-filters">
+        <label>Variável
+          <select id="${prefix}_variable"><option value="">-- selecione --</option></select>
+        </label>
+        <label>Status
+          <select id="${prefix}_status">
+            <option value="ALL">Todos</option>
+            <option value="OK">OK</option>
+            <option value="NOK">NOK</option>
+          </select>
+        </label>
+        <label>Arquivo
+          <input type="text" id="${prefix}_file" placeholder="contém..." />
+        </label>
+        <label>Peça (ID)
+          <input type="text" id="${prefix}_piece" placeholder="ID peça..." />
+        </label>
+        <label>Data inicial
+          <input type="datetime-local" id="${prefix}_dateStart" />
+        </label>
+        <label>Data final
+          <input type="datetime-local" id="${prefix}_dateEnd" />
+        </label>
+        <label>Valor mínimo
+          <input type="number" step="any" id="${prefix}_valueMin" />
+        </label>
+        <label>Valor máximo
+          <input type="number" step="any" id="${prefix}_valueMax" />
+        </label>
+        <label>Nº subgrupos
+          <input type="number" min="1" step="1" id="${prefix}_subgroups" value="1" />
+        </label>
+        <label class="inline">
+          <input type="checkbox" id="${prefix}_customLimits" />
+          <span>LSL/USL custom</span>
+        </label>
+        <label>LSL custom
+          <input type="number" step="any" id="${prefix}_customLsl" disabled />
+        </label>
+        <label>USL custom
+          <input type="number" step="any" id="${prefix}_customUsl" disabled />
+        </label>
+      </div>
+      <div class="hist-chart-wrap">
+        <canvas id="${prefix}_chart"></canvas>
+      </div>
+      <div class="capability-box" id="${prefix}_capability">
+        <span>CP<b>-</b></span>
+        <span>CPK<b>-</b></span>
+        <span>PP<b>-</b></span>
+        <span>PPK<b>-</b></span>
+      </div>
+    </div>
+  `;
+}
+ 
+function initHistograms() {
+  const section = document.getElementById("histSection");
+  section.innerHTML = buildHistPanel("hist1", "Histograma 1") + buildHistPanel("hist2", "Histograma 2");
+  HIST_PREFIXES.forEach(attachHistListeners);
+}
+ 
+function attachHistListeners(prefix) {
+  const ids = ["variable","status","file","piece","dateStart","dateEnd","valueMin","valueMax",
+               "subgroups","customLimits","customLsl","customUsl"];
+  ids.forEach(key => {
+    const el = document.getElementById(`${prefix}_${key}`);
+    if (!el) return;
+    const handler = () => {
+      if (key === "customLimits") {
+        const enabled = document.getElementById(`${prefix}_customLimits`).checked;
+        document.getElementById(`${prefix}_customLsl`).disabled = !enabled;
+        document.getElementById(`${prefix}_customUsl`).disabled = !enabled;
+      }
+      renderHistogram(prefix);
+    };
+    el.addEventListener("change", handler);
+    el.addEventListener("input", handler);
+  });
+}
+ 
+function populateHistVariable(prefix) {
+  const sel = document.getElementById(`${prefix}_variable`);
+  if (!sel) return;
+  const current = sel.value;
+  const vars = [...new Set(ALL_DATA.map(r => r.variableName))].sort();
+  sel.innerHTML = '<option value="">-- selecione --</option>' +
+    vars.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+  if (current && vars.includes(current)) sel.value = current;
+}
+ 
+function getFilteredHistData(prefix) {
+  const v = document.getElementById(`${prefix}_variable`).value;
+  const st = document.getElementById(`${prefix}_status`).value;
+  const fTxt = document.getElementById(`${prefix}_file`).value.toLowerCase().trim();
+  const pc = document.getElementById(`${prefix}_piece`).value.trim();
+  const dStart = document.getElementById(`${prefix}_dateStart`).value;
+  const dEnd = document.getElementById(`${prefix}_dateEnd`).value;
+  const dStartD = dStart ? new Date(dStart) : null;
+  const dEndD = dEnd ? new Date(dEnd) : null;
+  const vMinRaw = document.getElementById(`${prefix}_valueMin`).value;
+  const vMaxRaw = document.getElementById(`${prefix}_valueMax`).value;
+  const vMin = vMinRaw === "" ? null : parseFloat(vMinRaw);
+  const vMax = vMaxRaw === "" ? null : parseFloat(vMaxRaw);
+ 
+  return ALL_DATA.filter(r => {
+    if (v && r.variableName !== v) return false;
+    if (st !== "ALL" && r.status !== st) return false;
+    if (fTxt && !r.fileName.toLowerCase().includes(fTxt) &&
+        !(r.folderPath || "").toLowerCase().includes(fTxt)) return false;
+    if (pc && String(r.pieceId) !== pc) return false;
+    if (dStartD && (!r.datetime || r.datetime < dStartD)) return false;
+    if (dEndD && (!r.datetime || r.datetime > dEndD)) return false;
+    if (vMin !== null && !isNaN(vMin) && (r.value === null || r.value < vMin)) return false;
+    if (vMax !== null && !isNaN(vMax) && (r.value === null || r.value > vMax)) return false;
+    return true;
+  }).sort((a, b) => {
+    const ta = a.datetime ? a.datetime.getTime() : 0;
+    const tb = b.datetime ? b.datetime.getTime() : 0;
+    return ta - tb;
+  });
+}
+ 
+/* ---------- Estatística ---------- */
+ 
+function mean(vals) { return vals.reduce((a,b) => a+b, 0) / vals.length; }
+ 
+function stdDev(vals) {
+  if (vals.length < 2) return 0;
+  const m = mean(vals);
+  const s = vals.reduce((a,b) => a + (b-m)*(b-m), 0);
+  return Math.sqrt(s / (vals.length - 1));
+}
+ 
+// d2 para estimativa de sigma via média de amplitudes
+const D2_TABLE = {2:1.128, 3:1.693, 4:2.059, 5:2.326, 6:2.534, 7:2.704,
+                  8:2.847, 9:2.970, 10:3.078, 11:3.173, 12:3.258, 15:3.472, 20:3.735, 25:3.931};
+ 
+function d2(n) {
+  if (n <= 2) return 1.128;
+  if (D2_TABLE[n]) return D2_TABLE[n];
+  const keys = Object.keys(D2_TABLE).map(Number).sort((a,b)=>a-b);
+  let lower = keys[0], upper = keys[keys.length-1];
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (keys[i] <= n && keys[i+1] >= n) { lower = keys[i]; upper = keys[i+1]; break; }
+  }
+  if (n > upper) return D2_TABLE[upper];
+  const t = (n - lower) / (upper - lower || 1);
+  return D2_TABLE[lower] + t * (D2_TABLE[upper] - D2_TABLE[lower]);
+}
+ 
+function sigmaWithin(vals, subgroupSize) {
+  if (vals.length < 2) return 0;
+  if (subgroupSize <= 1) {
+    let sumMR = 0;
+    for (let i = 1; i < vals.length; i++) sumMR += Math.abs(vals[i] - vals[i-1]);
+    const mrBar = sumMR / (vals.length - 1);
+    return mrBar / 1.128;
+  }
+  const numGroups = Math.floor(vals.length / subgroupSize);
+  if (numGroups < 1) return 0;
+  let sumR = 0;
+  for (let g = 0; g < numGroups; g++) {
+    const sub = vals.slice(g * subgroupSize, (g + 1) * subgroupSize);
+    sumR += Math.max(...sub) - Math.min(...sub);
+  }
+  const rBar = sumR / numGroups;
+  return rBar / d2(subgroupSize);
+}
+ 
+function computeCapability(vals, lsl, usl, subgroupSize) {
+  const result = { cp: null, cpk: null, pp: null, ppk: null };
+  if (!vals.length) return result;
+  const hasLsl = lsl !== null && Number.isFinite(lsl);
+  const hasUsl = usl !== null && Number.isFinite(usl);
+  if (!hasLsl && !hasUsl) return result;
+ 
+  const m = mean(vals);
+  const sOverall = stdDev(vals);
+  const sWithin = sigmaWithin(vals, subgroupSize);
+ 
+  if (hasLsl && hasUsl) {
+    if (sWithin > 0) result.cp = (usl - lsl) / (6 * sWithin);
+    if (sOverall > 0) result.pp = (usl - lsl) / (6 * sOverall);
+  }
+  if (sWithin > 0) {
+    const cpu = hasUsl ? (usl - m) / (3 * sWithin) : Infinity;
+    const cpl = hasLsl ? (m - lsl) / (3 * sWithin) : Infinity;
+    const cpk = Math.min(cpu, cpl);
+    result.cpk = Number.isFinite(cpk) ? cpk : null;
+  }
+  if (sOverall > 0) {
+    const ppu = hasUsl ? (usl - m) / (3 * sOverall) : Infinity;
+    const ppl = hasLsl ? (m - lsl) / (3 * sOverall) : Infinity;
+    const ppk = Math.min(ppu, ppl);
+    result.ppk = Number.isFinite(ppk) ? ppk : null;
+  }
+  return result;
+}
+ 
+function updateCapabilityBox(prefix, cap) {
+  const fmt = v => (v === null || !Number.isFinite(v)) ? "-" : v.toFixed(3);
+  document.getElementById(`${prefix}_capability`).innerHTML =
+    `<span>CP<b>${fmt(cap.cp)}</b></span>` +
+    `<span>CPK<b>${fmt(cap.cpk)}</b></span>` +
+    `<span>PP<b>${fmt(cap.pp)}</b></span>` +
+    `<span>PPK<b>${fmt(cap.ppk)}</b></span>`;
+}
+ 
+/* ---------- Render Histograma ---------- */
+ 
+function renderHistogram(prefix) {
+  const canvas = document.getElementById(`${prefix}_chart`);
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (histInstances[prefix]) { histInstances[prefix].destroy(); histInstances[prefix] = null; }
+ 
+  const data = getFilteredHistData(prefix);
+  const vals = data.map(r => r.value).filter(v => v !== null && Number.isFinite(v));
+ 
+  if (vals.length < 2) {
+    updateCapabilityBox(prefix, { cp: null, cpk: null, pp: null, ppk: null });
+    return;
+  }
+ 
+  // LSL/USL: custom ou dos dados
+  const useCustom = document.getElementById(`${prefix}_customLimits`).checked;
+  let lsl = null, usl = null;
+  if (useCustom) {
+    const cl = parseFloat(document.getElementById(`${prefix}_customLsl`).value);
+    const cu = parseFloat(document.getElementById(`${prefix}_customUsl`).value);
+    lsl = isNaN(cl) ? null : cl;
+    usl = isNaN(cu) ? null : cu;
+  } else {
+    for (const r of data) {
+      if (lsl === null && r.lsl !== null) lsl = r.lsl;
+      if (usl === null && r.usl !== null) usl = r.usl;
+      if (lsl !== null && usl !== null) break;
+    }
+  }
+ 
+  // Bins
+  const vMin = Math.min(...vals);
+  const vMax = Math.max(...vals);
+  const numBins = Math.max(5, Math.min(30, Math.ceil(Math.sqrt(vals.length))));
+  const range = (vMax - vMin) || 1;
+  const binWidth = range / numBins;
+  const bins = new Array(numBins).fill(0);
+  for (const v of vals) {
+    let idx = Math.floor((v - vMin) / binWidth);
+    if (idx >= numBins) idx = numBins - 1;
+    if (idx < 0) idx = 0;
+    bins[idx]++;
+  }
+  const binData = bins.map((count, i) => ({ x: vMin + i * binWidth + binWidth / 2, y: count }));
+ 
+  // Curva normal escalada à frequência
+  const m = mean(vals);
+  const s = stdDev(vals);
+  const curve = [];
+  if (s > 0) {
+    const lo = Math.min(vMin, lsl !== null ? lsl : vMin, m - 4 * s);
+    const hi = Math.max(vMax, usl !== null ? usl : vMax, m + 4 * s);
+    const steps = 80;
+    const dx = (hi - lo) / steps;
+    for (let i = 0; i <= steps; i++) {
+      const x = lo + i * dx;
+      const y = (1 / (s * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - m) / s) ** 2);
+      curve.push({ x, y: y * vals.length * binWidth });
+    }
+  }
+ 
+  const yMax = Math.max(...bins, ...(curve.length ? curve.map(p => p.y) : [0]));
+ 
+  const datasets = [
+    {
+      type: "bar",
+      label: "Frequência",
+      data: binData,
+      backgroundColor: "rgba(123,31,162,0.55)",
+      borderColor: "#7b1fa2",
+      borderWidth: 1,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0,
+      order: 2
+    },
+    {
+      type: "line",
+      label: "Curva Normal",
+      data: curve,
+      borderColor: "#ff4a1c",
+      backgroundColor: "rgba(255,74,28,0.1)",
+      borderWidth: 2.5,
+      tension: 0.3,
+      pointRadius: 0,
+      fill: false,
+      order: 1
+    }
+  ];
+  if (lsl !== null) {
+    datasets.push({
+      type: "line", label: "LSL",
+      data: [{ x: lsl, y: 0 }, { x: lsl, y: yMax * 1.1 }],
+      borderColor: "#ff4a1c", borderDash: [6,4], pointRadius: 0,
+      borderWidth: 1.8, fill: false, order: 0
+    });
+  }
+  if (usl !== null) {
+    datasets.push({
+      type: "line", label: "USL",
+      data: [{ x: usl, y: 0 }, { x: usl, y: yMax * 1.1 }],
+      borderColor: "#d81b3c", borderDash: [6,4], pointRadius: 0,
+      borderWidth: 1.8, fill: false, order: 0
+    });
+  }
+ 
+  histInstances[prefix] = new Chart(ctx, {
+    type: "bar",
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      parsing: false,
+      plugins: {
+        legend: { position: "top", labels: { font: { size: 11 }, boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            title: (items) => `Valor: ${items[0].parsed.x.toFixed(3)}`,
+            label: (item) => `${item.dataset.label}: ${item.parsed.y.toFixed(2)}`
+          }
+        }
+      },
+      scales: {
+        x: { type: "linear", title: { display: true, text: "Valor", font: { size: 11 } }, ticks: { font: { size: 10 } } },
+        y: { beginAtZero: true, title: { display: true, text: "Frequência", font: { size: 11 } }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+ 
+  const subgroupSize = parseInt(document.getElementById(`${prefix}_subgroups`).value, 10) || 1;
+  const cap = computeCapability(vals, lsl, usl, Math.max(1, subgroupSize));
+  updateCapabilityBox(prefix, cap);
+}
+ 
+function renderAllHistograms() {
+  HIST_PREFIXES.forEach(renderHistogram);
+}
+ 
+// Inicializa painéis e integra com fluxo existente
+initHistograms();
+ 
+const _originalPopulateVariableSelect = populateVariableSelect;
+populateVariableSelect = function() {
+  _originalPopulateVariableSelect();
+  HIST_PREFIXES.forEach(populateHistVariable);
+};
+ 
+const _originalRefreshUIFromData = refreshUIFromData;
+refreshUIFromData = function() {
+  _originalRefreshUIFromData();
+  HIST_PREFIXES.forEach(p => {
+    const sel = document.getElementById(`${p}_variable`);
+    if (sel && !sel.value && sel.options.length > 1) sel.value = sel.options[1].value;
+  });
+  renderAllHistograms();
+};
 </script>
 </body>
 </html>
